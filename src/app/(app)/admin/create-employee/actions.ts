@@ -31,7 +31,7 @@ export async function createUser(formData: FormData) {
     
   if (!adminProfile) return { error: 'Could not resolve your company context.' }
   const companyId = adminProfile.company_id
-  const companyCode = (adminProfile.companies as unknown as { code: string })?.code || 'XX'
+  const companyCode = (Array.isArray(adminProfile.companies) ? adminProfile.companies[0]?.code : (adminProfile.companies as any)?.code) || 'XX'
 
   // 2. Admin client to bypass RLS for user creation
   const supabaseAdmin = createServerClient(
@@ -43,12 +43,19 @@ export async function createUser(formData: FormData) {
   const email = formData.get('email') as string
   const firstName = formData.get('first_name') as string
   const lastName = formData.get('last_name') as string
+  const department = formData.get('department') as string
   const roleName = formData.get('role') as string
+  const phone = formData.get('phone') as string
 
   // Generate Login ID: [CompanyCode][First2Last2][Year][0001]
-  // In a real app, you'd calculate the next serial based on existing users.
-  const initials = (firstName.substring(0, 2) + lastName.substring(0, 2)).toUpperCase()
-  const year = new Date().getFullYear()
+  // Get next serial number
+  const { count } = await supabaseAdmin
+    .from('profiles')
+    .select('*', { count: 'exact', head: true })
+    .eq('company_id', companyId)
+
+  const initials = `${firstName.slice(0, 2)}${lastName.slice(0, 2)}`.toUpperCase()
+  const year = new Date().getFullYear().toString()
   const randomSuffix = Math.floor(1000 + Math.random() * 9000).toString()
   const loginId = `${companyCode.toUpperCase()}${initials}${year}${randomSuffix}`
   
@@ -86,11 +93,13 @@ export async function createUser(formData: FormData) {
         login_id: loginId,
         first_name: firstName,
         last_name: lastName,
-        email: email
+        email: email,
+        phone: phone || null,
+        department: department || null
       })
 
     if (profileError) {
-      // Rollback Auth user creation to avoid orphaned accounts blocking the email
+      // Rollback: delete the orphaned Auth user so the email can be reused
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
       return { error: `Profile creation failed: ${profileError.message}` }
     }
@@ -120,16 +129,12 @@ export async function createUser(formData: FormData) {
 
       const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(emailjsData)
       });
 
       if (!response.ok) {
         console.error('EmailJS Error:', await response.text());
-      } else {
-        console.log('Credentials email sent via EmailJS');
       }
     } catch (err) {
       console.error('Failed to send email:', err);

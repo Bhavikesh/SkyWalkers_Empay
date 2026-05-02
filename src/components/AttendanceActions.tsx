@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { markAttendance } from '@/app/dashboard/actions'
+import { checkIn, checkOut } from '@/app/(app)/attendance/actions'
 
 export default function AttendanceActions() {
   const [loading, setLoading] = useState<string | null>(null)
@@ -10,7 +10,7 @@ export default function AttendanceActions() {
   async function handleAction(action: 'check_in' | 'check_out') {
     setLoading(action)
     setResult(null)
-    const res = await markAttendance(action)
+    const res = action === 'check_in' ? await checkIn() : await checkOut()
     if (res?.error) {
       setResult({ type: 'error', text: res.error })
     } else {

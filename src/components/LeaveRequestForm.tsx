@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { submitLeaveRequest } from '@/app/dashboard/actions'
+import { applyLeave } from '@/app/(app)/leaves/apply/actions'
 import { Plus } from 'lucide-react'
 
 export default function LeaveRequestForm() {
@@ -14,7 +14,7 @@ export default function LeaveRequestForm() {
     setResult(null)
 
     const formData = new FormData(e.currentTarget)
-    const res = await submitLeaveRequest(formData)
+    const res = await applyLeave(formData)
 
     if (res?.error) {
       setResult({ type: 'error', text: res.error })

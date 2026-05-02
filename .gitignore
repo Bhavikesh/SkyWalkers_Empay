@@ -26,3 +26,7 @@ dist-ssr
 EmPay – Smart Human Resource Management System.pdf
 pdf_text.txt
 schema.sql
+
+# Next.js build output
+.next/
+out/

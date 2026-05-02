@@ -41,8 +41,8 @@ export default async function LayoutWrapper({ children }: { children: React.Reac
             <span className="material-symbols-outlined text-white" style={{ fontVariationSettings: "'FILL' 1" }}>dataset</span>
           </div>
           <div>
-            <h1 className="text-lg font-bold text-white leading-none">Nexus HR</h1>
-            <p className="text-[10px] uppercase tracking-widest text-slate-500 mt-1">Premium HR Utility</p>
+            <h1 className="text-lg font-bold text-white leading-none">EmPay</h1>
+            <p className="text-[10px] uppercase tracking-widest text-slate-500 mt-1">HRMS Platform</p>
           </div>
         </div>
         
@@ -66,6 +66,18 @@ export default async function LayoutWrapper({ children }: { children: React.Reac
           <Link href="/leaves/apply" className="text-slate-500 px-4 py-3 flex items-center gap-3 group cursor-pointer hover:text-white hover:bg-white/5 transition-all rounded-xl">
             <span className="material-symbols-outlined text-xl">event_busy</span>
             <span className="font-medium">Time Off</span>
+          </Link>
+          <Link href="/payroll" className="text-slate-500 px-4 py-3 flex items-center gap-3 group cursor-pointer hover:text-white hover:bg-white/5 transition-all rounded-xl">
+            <span className="material-symbols-outlined text-xl">account_balance_wallet</span>
+            <span className="font-medium">Payroll</span>
+          </Link>
+          <Link href="/reports" className="text-slate-500 px-4 py-3 flex items-center gap-3 group cursor-pointer hover:text-white hover:bg-white/5 transition-all rounded-xl">
+            <span className="material-symbols-outlined text-xl">bar_chart</span>
+            <span className="font-medium">Reports</span>
+          </Link>
+          <Link href="/settings" className="text-slate-500 px-4 py-3 flex items-center gap-3 group cursor-pointer hover:text-white hover:bg-white/5 transition-all rounded-xl">
+            <span className="material-symbols-outlined text-xl">settings</span>
+            <span className="font-medium">Settings</span>
           </Link>
 
           {(perms.can_manage_users || perms.can_manage_leaves) && (

@@ -1,8 +1,13 @@
 'use client'
 
 import React, { useState } from 'react'
-import { updateLeaveStatus } from '@/app/dashboard/actions'
 import { Check, X } from 'lucide-react'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 interface Props {
   leaveId: string
@@ -13,9 +18,12 @@ export default function LeaveApproveReject({ leaveId }: Props) {
 
   async function handleAction(action: 'Approved' | 'Rejected') {
     setStatus('loading')
-    const res = await updateLeaveStatus(leaveId, action)
-    if (res?.error) {
-      alert(res.error)
+    const { error } = await supabase
+      .from('leaves')
+      .update({ status: action })
+      .eq('id', leaveId)
+    if (error) {
+      alert(error.message)
       setStatus('idle')
     } else {
       setStatus(action === 'Approved' ? 'approved' : 'rejected')
