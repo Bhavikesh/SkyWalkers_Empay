@@ -1,129 +1,78 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, Wallet } from 'lucide-react';
-import { usePayrollContext } from '../context/PayrollContext';
-import { usePayrollStats } from '../hooks/usePayroll';
-import SectionHeader from '../components/common/SectionHeader';
-import WarningsPanel from '../components/Dashboard/WarningsPanel';
-import PayrunList from '../components/Dashboard/PayrunList';
-import StatsPanel from '../components/Dashboard/StatsPanel';
-import Button from '../components/common/Button';
-import Modal from '../components/common/Modal';
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Card } from '../components/Card'
+import { Button } from '../components/Button'
+import { supabase } from '../lib/supabase'
 
 export default function PayrollDashboard() {
-  const { payruns, warnings, selectPayrun, createPayrun } = usePayrollContext();
-  const stats = usePayrollStats();
-  const navigate = useNavigate();
-  const [showNewPayrun, setShowNewPayrun] = useState(false);
-  const [newMonth, setNewMonth] = useState('November');
-  const [newYear, setNewYear] = useState('2025');
-  const [creating, setCreating] = useState(false);
+  const [payruns, setPayruns] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  const monthOptions = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
-  ];
+  useEffect(() => {
+    async function fetchPayroll() {
+      try {
+        setLoading(true)
+        
+        // Use true relational mapping, explicitly requesting linked employees data
+        const { data, error: dbError } = await supabase
+          .from('payroll')
+          .select(`
+            *,
+            employees (
+              id,
+              name,
+              email
+            )
+          `)
+        
+        if (dbError) throw dbError
+        setPayruns(data || [])
+      } catch (err) {
+        console.error('Error fetching payroll:', err)
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchPayroll()
+  }, [])
 
-  const monthToPeriod = (month, year) => {
-    const idx = monthOptions.indexOf(month) + 1;
-    return `${year}-${String(idx).padStart(2, '0')}`;
-  };
-
-  const handleCreatePayrun = async () => {
-    setCreating(true);
-    const period = monthToPeriod(newMonth, newYear);
-    const payrun = await createPayrun(period, newMonth, newYear);
-    setCreating(false);
-    setShowNewPayrun(false);
-    selectPayrun(payrun);
-    navigate('/payrun');
-  };
+  if (loading) return <div className="p-8 text-gray-400">Loading payroll...</div>
+  if (error) return <div className="p-8 text-red-500">Error: {error}</div>
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <SectionHeader
-        icon={Wallet}
-        title="Payroll"
-        subtitle="Manage employee payroll and payslips"
-        action={
-          <Button onClick={() => setShowNewPayrun(true)} id="new-payrun-btn">
-            <Plus className="w-4 h-4" />
-            New Payrun
-          </Button>
-        }
-      />
-
-      {/* Dashboard Tabs */}
-      <div className="flex items-center gap-1 bg-[#0f172a] border border-gray-800 rounded-xl p-1 w-fit">
-        <button
-          onClick={() => navigate('/payroll')}
-          className="px-4 py-2 text-sm font-medium rounded-lg bg-purple-600 text-white cursor-pointer"
-          id="tab-dashboard"
-        >
-          Dashboard
-        </button>
-        <button
-          onClick={() => navigate('/payrun')}
-          className="px-4 py-2 text-sm font-medium rounded-lg text-gray-400 hover:text-white hover:bg-dark-600 transition-colors cursor-pointer"
-          id="tab-payrun"
-        >
-          Payrun
-        </button>
+    <div className="flex flex-col gap-8">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-xl font-semibold text-white">Payroll</h1>
+        <Link to="/payrun">
+          <Button variant="secondary">Open pay run</Button>
+        </Link>
       </div>
 
-      {/* Warnings */}
-      <WarningsPanel warnings={warnings} />
-
-      {/* Payrun List */}
-      <PayrunList payruns={payruns} onSelectPayrun={selectPayrun} />
-
-      {/* Stats */}
-      <StatsPanel {...stats} />
-
-      {/* New Payrun Modal */}
-      <Modal
-        isOpen={showNewPayrun}
-        onClose={() => setShowNewPayrun(false)}
-        title="Create New Payrun"
-        maxWidth="max-w-md"
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm text-gray-400 mb-1.5">Month</label>
-            <select
-              value={newMonth}
-              onChange={(e) => setNewMonth(e.target.value)}
-              className="w-full bg-input-bg border border-input-border text-white text-sm rounded-xl px-4 py-2 focus:outline-none focus:border-purple-500 transition-colors"
-              id="new-payrun-month"
-            >
-              {monthOptions.map((m) => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
+      <section className="flex flex-col gap-6">
+        <h2 className="text-lg font-medium text-white">Payrun list</h2>
+        {payruns.length === 0 ? (
+          <p className="text-sm text-gray-400">No payroll data found</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {payruns.map((pr) => (
+              <Card key={pr.id} className="flex flex-col gap-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex flex-col gap-4">
+                    {/* Access employee name through the explicit foreign-key join mapping */}
+                    <p className="text-base text-white">{pr.employees?.name || 'Unknown Employee'}</p>
+                    <p className="text-sm text-gray-400">Net Salary: {pr.net_salary || pr.amount || '—'}</p>
+                  </div>
+                  <span className="shrink-0 rounded-lg bg-slate-800 px-4 py-2 text-xs font-medium capitalize text-gray-300">
+                    {pr.status || 'Computed'}
+                  </span>
+                </div>
+              </Card>
+            ))}
           </div>
-          <div>
-            <label className="block text-sm text-gray-400 mb-1.5">Year</label>
-            <select
-              value={newYear}
-              onChange={(e) => setNewYear(e.target.value)}
-              className="w-full bg-input-bg border border-input-border text-white text-sm rounded-xl px-4 py-2 focus:outline-none focus:border-purple-500 transition-colors"
-              id="new-payrun-year"
-            >
-              <option value="2025">2025</option>
-              <option value="2024">2024</option>
-            </select>
-          </div>
-          <div className="flex gap-4 pt-2">
-            <Button variant="secondary" onClick={() => setShowNewPayrun(false)} className="flex-1">
-              Cancel
-            </Button>
-            <Button onClick={handleCreatePayrun} disabled={creating} className="flex-1" id="create-payrun-btn">
-              {creating ? 'Creating...' : 'Create Payrun'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        )}
+      </section>
     </div>
-  );
+  )
 }

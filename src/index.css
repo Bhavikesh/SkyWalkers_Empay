@@ -1,105 +1,16 @@
-@import "tailwindcss";
-@source "../";
+@import 'tailwindcss';
 
-@theme {
-  --font-inter: 'Inter', sans-serif;
-
-  /* ── Core Dark Palette ── */
-  --color-dark-950: #080810;
-  --color-dark-900: #0f172a;
-  --color-dark-800: #131a2e;
-  --color-dark-700: #172033;
-  --color-dark-600: #1e293b;
-  --color-dark-500: #293548;
-  --color-dark-400: #334155;
-  --color-dark-300: #475569;
-  --color-dark-200: #64748b;
-  --color-dark-100: #94a3b8;
-
-  /* ── Brand Colors ── */
-  --color-purple-700: #6d28d9;
-  --color-purple-600: #7c3aed;
-  --color-purple-500: #8b5cf6;
-  --color-purple-400: #a78bfa;
-  --color-purple-300: #c4b5fd;
-  --color-green-600: #059669;
-  --color-green-500: #10b981;
-  --color-green-400: #34d399;
-  --color-amber-500: #f59e0b;
-  --color-amber-400: #fbbf24;
-  --color-red-500: #ef4444;
-  --color-red-400: #f87171;
-  --color-blue-500: #3b82f6;
-  --color-blue-400: #60a5fa;
-
-  /* ── Semantic Tokens ── */
-  --color-sidebar-bg: #0c1220;
-  --color-sidebar-hover: #131d30;
-  --color-sidebar-active: #7c3aed;
-  --color-card-bg: #0f172a;
-  --color-card-border: #1e293b;
-  --color-table-header: #131a2e;
-  --color-table-row-hover: #172033;
-  --color-input-bg: #131a2e;
-  --color-input-border: #293548;
-}
-
-* {
+html,
+body,
+#root {
+  height: 100%;
   margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-html {
-  scroll-behavior: smooth;
 }
 
 body {
-  font-family: 'Inter', sans-serif;
-  background-color: var(--color-dark-950);
-  color: #e2e8f0;
-  min-height: 100vh;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  @apply bg-slate-950 text-gray-300 antialiased;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--color-dark-400);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-dark-300);
-}
-
-/* Responsive spacing utilities */
-@layer components {
-  .page-container {
-    @apply w-full max-w-7xl mx-auto;
-  }
-
-  .section-spacing {
-    @apply space-y-6;
-  }
-}
-
-/* Print styles */
-@media print {
-  body {
-    background: white !important;
-    color: #1a1a2e !important;
-  }
-  .no-print {
-    display: none !important;
-  }
+#root {
+  min-height: 100%;
 }
