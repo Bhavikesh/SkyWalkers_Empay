@@ -3,9 +3,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
-import { Resend } from 'resend'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function createUser(formData: FormData) {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -102,46 +99,34 @@ export async function createUser(formData: FormData) {
       entity_id: authData.user.id
     })
 
-    // Send Welcome Email via Resend
-    if (process.env.RESEND_API_KEY) {
-      try {
-        const { data, error } = await resend.emails.send({
-          from: 'EmPay Technologies <onboarding@resend.dev>',
-          to: email,
-          subject: 'Welcome to EmPay HRMS - Your Login Credentials',
-          html: `
-            <div style="font-family: sans-serif; max-w: 600px; margin: 0 auto; border: 1px solid #eaeaea; border-radius: 8px; overflow: hidden;">
-              <div style="background-color: #7c3aed; padding: 24px; text-align: center;">
-                <h1 style="color: white; margin: 0; font-size: 24px;">Welcome to EmPay HRMS</h1>
-              </div>
-              <div style="padding: 32px; background-color: #ffffff; color: #333;">
-                <p style="font-size: 16px; margin-top: 0;">Hi ${firstName},</p>
-                <p style="font-size: 16px;">Your EmPay HRMS account has been created by your administrator. You can now log into the portal to access your dashboard, leaves, and attendance.</p>
-                
-                <div style="background-color: #f3f4f6; padding: 20px; border-radius: 6px; margin: 24px 0;">
-                  <p style="margin: 0 0 10px 0; font-size: 14px; color: #666; text-transform: uppercase; letter-spacing: 0.05em;">Your Login Credentials</p>
-                  <p style="margin: 0 0 8px 0; font-size: 16px;"><strong>Login ID:</strong> <code style="background: #e5e7eb; padding: 2px 6px; border-radius: 4px;">${loginId}</code></p>
-                  <p style="margin: 0; font-size: 16px;"><strong>Password:</strong> <code style="background: #e5e7eb; padding: 2px 6px; border-radius: 4px;">${password}</code></p>
-                </div>
-                
-                <p style="font-size: 14px; color: #666;">For security reasons, we strongly recommend changing your password after your first login.</p>
-                
-                <div style="text-align: center; margin-top: 32px;">
-                  <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/login" style="background-color: #7c3aed; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; display: inline-block;">Go to Login Portal</a>
-                </div>
-              </div>
-            </div>
-          `
-        })
-
-        if (error) {
-          console.error('Resend Error:', error)
-        } else {
-          console.log('Email sent successfully:', data?.id)
+    // Send Welcome Email via EmailJS
+    try {
+      const emailjsData = {
+        service_id: 'service_foyth57',
+        template_id: 'template_6kgypei',
+        user_id: 'N-sHjBFeFUVQiQMuh',
+        template_params: {
+          email: email,
+          login_id: loginId,
+          password: password,
         }
-      } catch (err) {
-        console.error('Failed to send email:', err)
+      };
+
+      const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(emailjsData)
+      });
+
+      if (!response.ok) {
+        console.error('EmailJS Error:', await response.text());
+      } else {
+        console.log('Credentials email sent via EmailJS');
       }
+    } catch (err) {
+      console.error('Failed to send email:', err);
     }
   }
 
