@@ -32,7 +32,7 @@ export function Sidebar() {
   const { user } = useUserAttendance()
 
   return (
-    <aside className="fixed left-0 top-0 flex h-screen w-64 flex-col gap-8 border-r border-gray-800 bg-[#0b1220] px-4 py-6">
+    <aside className="fixed left-0 top-0 flex h-screen w-64 flex-col gap-8 border-r border-gray-800 bg-[#0b1220] px-4 py-6 print:hidden">
       <div className="px-2">
         <p className="text-lg font-semibold tracking-tight text-white">HRMS Payroll</p>
         <p className="text-sm text-gray-500">Suite</p>

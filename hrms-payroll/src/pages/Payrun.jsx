@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../components/Button'
+import { StatusBadge } from '../components/StatusBadge'
 import { Table, TableCell, TableRow } from '../components/Table'
 import { usePayroll } from '../context/PayrollContext'
 import { getPayrollData } from '../services/mockApi'
@@ -9,7 +10,7 @@ function formatInr(n) {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n)
 }
 
-const statusStyles = {
+const lineStatusStyles = {
   draft: 'text-gray-400',
   computed: 'text-sky-300',
   validated: 'text-violet-300',
@@ -27,9 +28,20 @@ const columns = [
 ]
 
 export default function Payrun() {
-  const { payrollState, compute, validate, cancel, markPaid, isLocked } = usePayroll()
+  const { payrollState, canManagePayroll, compute, validate, markPaid } = usePayroll()
   const [lines, setLines] = useState([])
   const [loading, setLoading] = useState(true)
+
+  const status = payrollState.status
+
+  const { computeDisabled, validateDisabled, markPaidDisabled } = useMemo(() => {
+    const readOnly = !canManagePayroll
+    return {
+      computeDisabled: readOnly || status !== 'Draft',
+      validateDisabled: readOnly || status !== 'Computed',
+      markPaidDisabled: readOnly || status !== 'Validated',
+    }
+  }, [canManagePayroll, status])
 
   useEffect(() => {
     let cancelled = false
@@ -50,32 +62,34 @@ export default function Payrun() {
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-semibold text-white">Pay run</h1>
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-center justify-end gap-4">
           <Link to="/payslip">
             <Button variant="secondary">Payslip</Button>
           </Link>
           <Link to="/payroll">
-            <Button variant="secondary">Payrun</Button>
+            <Button variant="secondary">Payroll</Button>
           </Link>
-          <Button onClick={compute} disabled={payrollState !== 'draft' || isLocked}>
+          <Button onClick={compute} disabled={computeDisabled}>
             Compute
           </Button>
-          <Button onClick={validate} disabled={payrollState !== 'computed' || isLocked}>
+          <Button onClick={validate} disabled={validateDisabled}>
             Validate
           </Button>
-          <Button variant="secondary" onClick={markPaid} disabled={payrollState !== 'validated'}>
-            Mark paid
-          </Button>
-          <Button variant="danger" onClick={cancel} disabled={isLocked || payrollState === 'draft'}>
-            Cancel
+          <Button variant="secondary" onClick={markPaid} disabled={markPaidDisabled}>
+            Mark Paid
           </Button>
         </div>
       </div>
 
-      <p className="text-sm text-gray-400">
-        Workflow: <span className="capitalize text-gray-300">{payrollState}</span>
-        {isLocked ? ' — validated or paid runs are locked.' : ''}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-4">
+          <span className="text-sm text-gray-400">Workflow status</span>
+          <StatusBadge status={status} />
+        </div>
+        {!canManagePayroll ? (
+          <span className="text-sm text-amber-300/90">Read-only: payroll actions require Payroll or Admin role.</span>
+        ) : null}
+      </div>
 
       {loading ? (
         <p className="text-sm text-gray-400">Loading pay run…</p>
@@ -93,7 +107,7 @@ export default function Payrun() {
               <TableCell>{formatInr(row.basicWage)}</TableCell>
               <TableCell>{formatInr(row.grossWage)}</TableCell>
               <TableCell>{formatInr(row.netWage)}</TableCell>
-              <TableCell className={`capitalize ${statusStyles[row.status] ?? 'text-gray-400'}`}>{row.status}</TableCell>
+              <TableCell className={`capitalize ${lineStatusStyles[row.status] ?? 'text-gray-400'}`}>{row.status}</TableCell>
             </TableRow>
           ))}
         </Table>
