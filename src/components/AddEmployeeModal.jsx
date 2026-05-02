@@ -4,7 +4,6 @@ import {
   User,
   Mail,
   Phone,
-  Building,
   CheckCircle2,
   AlertCircle,
   Briefcase,
@@ -12,6 +11,7 @@ import {
   RefreshCw
 } from 'lucide-react'
 import { supabase } from '../utils/supabaseClient'
+import emailjs from '@emailjs/browser'
 
 /* ─── sub-components ──────────────────────────────────── */
 
@@ -64,7 +64,10 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }) {
 
   // reset on open
   useEffect(() => {
-    if (open) {
+    if (!open) return
+    let isMounted = true
+    setTimeout(() => {
+      if (!isMounted) return
       setForm({ firstName: '', lastName: '', email: '', phone: '', department: '' })
       setErrors({})
       setSubmitted(false)
@@ -72,7 +75,8 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }) {
       setSubmitError('')
       setCredentials(null)
       setIsGenerating(false)
-    }
+    }, 0)
+    return () => { isMounted = false }
   }, [open])
 
   if (!open) return null
@@ -96,12 +100,12 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }) {
     // Find highest serial number for this year
     const prefix = `OI${fn}${ln}${year}`
     const wildcard = `OI____${year}%`
-    
+
     const { data, error } = await supabase
       .from('profiles')
       .select('login_id')
       .like('login_id', wildcard)
-    
+
     let nextSerial = 1
     if (data && data.length > 0) {
       const serials = data.map(r => {
@@ -110,7 +114,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }) {
       })
       nextSerial = Math.max(...serials) + 1
     }
-    
+
     return `${prefix}${String(nextSerial).padStart(4, '0')}`
   }
 
@@ -141,13 +145,35 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }) {
     }
   }
 
+  const sendEmployeeCredentials = async (email, login_id, password) => {
+    try {
+      const templateParams = {
+        email: email, // Changed from to_email to email to match your template
+        login_id: login_id,
+        password: password,
+      };
+
+      await emailjs.send(
+        'service_foyth57',
+        'template_6kgypei',
+        templateParams,
+        'N-sHjBFeFUVQiQMuh'
+      );
+
+      console.log('Credentials email sent via EmailJS');
+    } catch (error) {
+      console.error('Failed to send email:', error);
+      // We don't throw here to avoid failing the whole form submission just because the email failed
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setSubmitError('')
     if (!validate()) return
 
     setIsSubmitting(true)
-    
+
     try {
       let loginId = credentials?.loginId
       let password = credentials?.password
@@ -157,7 +183,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }) {
         password = generatePassword()
         setCredentials({ loginId, password })
       }
-      
+
       const payload = {
         company_id: '14561483-7e3b-414d-9b0d-bf1a35c1b48e', // standard test company ID
         name: `${form.firstName.trim()} ${form.lastName.trim()}`,
@@ -175,6 +201,9 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }) {
 
       if (error) throw error
 
+      // Send the email after successful database insert
+      await sendEmployeeCredentials(form.email.trim(), loginId, password)
+
       setSubmitted(true)
       setTimeout(() => {
         onClose()
@@ -191,13 +220,13 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
+      <div
         className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
 
       {/* Modal */}
-      <div 
+      <div
         ref={overlayRef}
         className="relative w-full max-w-lg bg-[#14161e] rounded-2xl border border-slate-800/60 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden"
         style={{ animation: 'fadeSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}
@@ -208,7 +237,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }) {
             <h2 className="text-lg font-semibold text-slate-200">Add New Employee</h2>
             <p className="text-xs text-slate-500 mt-0.5">Create a new employee profile and credentials</p>
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="p-2 text-slate-500 hover:text-slate-300 hover:bg-slate-800/50 rounded-xl transition-colors"
           >
@@ -239,10 +268,10 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }) {
             <div className="grid grid-cols-2 gap-5 mb-5">
               <div>
                 <FieldLabel icon={User} required>First Name</FieldLabel>
-                <InputBase 
-                  placeholder="John" 
+                <InputBase
+                  placeholder="John"
                   value={form.firstName}
-                  onChange={e => setForm({...form, firstName: e.target.value})}
+                  onChange={e => setForm({ ...form, firstName: e.target.value })}
                   error={errors.firstName}
                 />
                 {errors.firstName && <p className="text-rose-400 text-xs mt-1.5 ml-1">{errors.firstName}</p>}
@@ -250,10 +279,10 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }) {
 
               <div>
                 <FieldLabel icon={User} required>Last Name</FieldLabel>
-                <InputBase 
-                  placeholder="Doe" 
+                <InputBase
+                  placeholder="Doe"
                   value={form.lastName}
-                  onChange={e => setForm({...form, lastName: e.target.value})}
+                  onChange={e => setForm({ ...form, lastName: e.target.value })}
                   error={errors.lastName}
                 />
                 {errors.lastName && <p className="text-rose-400 text-xs mt-1.5 ml-1">{errors.lastName}</p>}
@@ -262,11 +291,11 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }) {
 
             <div className="mb-5">
               <FieldLabel icon={Mail} required>Email Address</FieldLabel>
-              <InputBase 
+              <InputBase
                 type="email"
-                placeholder="john.doe@example.com" 
+                placeholder="john.doe@example.com"
                 value={form.email}
-                onChange={e => setForm({...form, email: e.target.value})}
+                onChange={e => setForm({ ...form, email: e.target.value })}
                 error={errors.email}
               />
               {errors.email && <p className="text-rose-400 text-xs mt-1.5 ml-1">{errors.email}</p>}
@@ -275,10 +304,10 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }) {
             <div className="grid grid-cols-2 gap-5 mb-6">
               <div>
                 <FieldLabel icon={Phone} required>Phone Number</FieldLabel>
-                <InputBase 
-                  placeholder="+1 (555) 000-0000" 
+                <InputBase
+                  placeholder="+1 (555) 000-0000"
                   value={form.phone}
-                  onChange={e => setForm({...form, phone: e.target.value})}
+                  onChange={e => setForm({ ...form, phone: e.target.value })}
                   error={errors.phone}
                 />
                 {errors.phone && <p className="text-rose-400 text-xs mt-1.5 ml-1">{errors.phone}</p>}
@@ -289,13 +318,13 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }) {
                 <div className="relative">
                   <select
                     value={form.department}
-                    onChange={e => setForm({...form, department: e.target.value})}
+                    onChange={e => setForm({ ...form, department: e.target.value })}
                     className={`
                       w-full px-3.5 py-2.5 rounded-xl text-sm
                       bg-[#0f1117] border transition-all duration-150 outline-none appearance-none
                       ${form.department ? 'text-slate-200' : 'text-slate-600'}
-                      ${errors.department 
-                        ? 'border-rose-500/50 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/10' 
+                      ${errors.department
+                        ? 'border-rose-500/50 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/10'
                         : 'border-slate-700/60 focus:border-indigo-500/70 focus:ring-2 focus:ring-indigo-500/10'}
                     `}
                   >
@@ -308,7 +337,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }) {
                     <option value="HR">HR</option>
                   </select>
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500"><path d="m6 9 6 6 6-6"/></svg>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500"><path d="m6 9 6 6 6-6" /></svg>
                   </div>
                 </div>
                 {errors.department && <p className="text-rose-400 text-xs mt-1.5 ml-1">{errors.department}</p>}

@@ -27,7 +27,11 @@ const statusConfig = {
 }
 
 function StatusBadge({ status }) {
-  const cfg = statusConfig[status]
+  let normalizedStatus = status || 'Pending'
+  // Normalize casing just in case
+  normalizedStatus = normalizedStatus.charAt(0).toUpperCase() + normalizedStatus.slice(1).toLowerCase()
+  const cfg = statusConfig[normalizedStatus] || statusConfig['Pending']
+  
   return (
     <span
       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border
