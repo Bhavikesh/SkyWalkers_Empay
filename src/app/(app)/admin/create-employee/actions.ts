@@ -31,7 +31,7 @@ export async function createUser(formData: FormData) {
     
   if (!adminProfile) return { error: 'Could not resolve your company context.' }
   const companyId = adminProfile.company_id
-  const companyCode = adminProfile.companies?.code || 'XX'
+  const companyCode = (Array.isArray(adminProfile.companies) ? adminProfile.companies[0]?.code : (adminProfile.companies as any)?.code) || 'XX'
 
   // 2. Admin client to bypass RLS for user creation
   const supabaseAdmin = createServerClient(
@@ -45,12 +45,19 @@ export async function createUser(formData: FormData) {
   const lastName = formData.get('last_name') as string
   const department = formData.get('department') as string
   const roleName = formData.get('role') as string
+  const phone = formData.get('phone') as string
 
   // Generate Login ID: [CompanyCode][First2Last2][Year][0001]
-  // In a real app, you'd calculate the next serial based on existing users.
-  const initials = (firstName.substring(0, 2) + lastName.substring(0, 2)).toUpperCase()
-  const year = new Date().getFullYear()
-  const loginId = `${companyCode.toUpperCase()}${initials}${year}0001`
+  // Get next serial number
+  const { count } = await supabaseAdmin
+    .from('profiles')
+    .select('*', { count: 'exact', head: true })
+    .eq('company_id', companyId)
+
+  const initials = `${firstName.slice(0, 2)}${lastName.slice(0, 2)}`.toUpperCase()
+  const year = new Date().getFullYear().toString()
+  const serial = String((count || 0) + 1).padStart(4, '0')
+  const loginId = `${companyCode.toUpperCase()}${initials}${year}${serial}`
   
   // Generate random password
   const password = Math.random().toString(36).slice(-8) + 'A1!'
@@ -86,7 +93,9 @@ export async function createUser(formData: FormData) {
         login_id: loginId,
         first_name: firstName,
         last_name: lastName,
-        email: email
+        email: email,
+        phone: phone || null,
+        department: department || null
       })
 
     if (profileError) return { error: profileError.message }

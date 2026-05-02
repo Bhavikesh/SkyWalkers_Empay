@@ -55,7 +55,8 @@ export async function updateSession(request: NextRequest) {
       .eq('id', user.id)
       .single()
       
-    const perms = profile?.roles || {}
+    const rawRoles = profile?.roles
+    const perms = (Array.isArray(rawRoles) ? rawRoles[0] : rawRoles) as any || {}
     const path = request.nextUrl.pathname
 
     // Onboarding Redirect
@@ -75,7 +76,11 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(new URL('/unauthorized', request.url))
     }
 
-    if (path.startsWith('/payroll') && !perms.can_process_payroll) {
+    if (path.startsWith('/payroll') && !perms.can_process_payroll && !perms.can_manage_users) {
+      return NextResponse.redirect(new URL('/unauthorized', request.url))
+    }
+
+    if (path.startsWith('/leaves/manage') && !perms.can_manage_leaves && !perms.can_process_payroll && !perms.can_manage_users) {
       return NextResponse.redirect(new URL('/unauthorized', request.url))
     }
   }

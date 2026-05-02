@@ -7,15 +7,15 @@ import { createClient } from '@/utils/supabase/server'
 export async function login(formData: FormData) {
   const supabase = await createClient()
 
-  const loginIdOrEmail = formData.get('login_id') as string
-  const password = formData.get('password') as string
+  const loginIdOrEmail = (formData.get('login_id') as string || '').trim()
+  const password = (formData.get('password') as string || '').trim()
 
   let emailToUse = loginIdOrEmail
 
   // If it doesn't look like an email, assume it's a login_id and resolve it
   if (!loginIdOrEmail.includes('@')) {
     const { data: resolvedEmail, error: resolveError } = await supabase.rpc('resolve_login_id', {
-      p_login_id: loginIdOrEmail
+      p_login_id: loginIdOrEmail.toUpperCase()
     })
 
     if (resolveError || !resolvedEmail) {
@@ -30,7 +30,7 @@ export async function login(formData: FormData) {
   })
 
   if (error) {
-    redirect('/login?message=Could not authenticate user')
+    redirect(`/login?message=${encodeURIComponent(error.message)}`)
   }
 
   revalidatePath('/', 'layout')
