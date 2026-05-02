@@ -1,40 +1,13 @@
-import { Users, UserPlus, UserCheck, UserX, MoreHorizontal, Mail } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Users, UserPlus, UserCheck, UserX, MoreHorizontal, Mail, AlertTriangle } from 'lucide-react'
 import StatCard from '../components/ui/StatCard'
 import Badge from '../components/ui/Badge'
 import { RiskBadge } from '../components/ui/Badge'
 import Card from '../components/ui/Card'
-import { getRiskLevel } from '../utils/burnout'
+import { getRiskLevel, buildLeaveCounts, RISK_LEVELS } from '../utils/burnout'
+import { supabase } from '../utils/supabaseClient'
 
-const employees = [
-  { id: 1, name: 'Sarah Johnson',   role: 'Product Designer',     dept: 'Design',      status: 'Active',  avatar: 'SJ', joined: 'Jan 2023' },
-  { id: 2, name: 'Marcus Rivera',   role: 'Senior Engineer',       dept: 'Engineering', status: 'Active',  avatar: 'MR', joined: 'Mar 2022' },
-  { id: 3, name: 'Priya Nair',      role: 'HR Manager',            dept: 'HR',          status: 'Active',  avatar: 'PN', joined: 'Aug 2021' },
-  { id: 4, name: 'Tom Kellaway',    role: 'Marketing Lead',        dept: 'Marketing',   status: 'On Leave',avatar: 'TK', joined: 'Nov 2022' },
-  { id: 5, name: 'Aisha Okonkwo',   role: 'Data Analyst',          dept: 'Analytics',   status: 'Active',  avatar: 'AO', joined: 'Feb 2024' },
-  { id: 6, name: 'Daniel Park',     role: 'Backend Developer',     dept: 'Engineering', status: 'Inactive',avatar: 'DP', joined: 'Jun 2020' },
-  { id: 7, name: 'Lena Fischer',    role: 'UX Researcher',         dept: 'Design',      status: 'Active',  avatar: 'LF', joined: 'Sep 2023' },
-  { id: 8, name: 'James Okafor',    role: 'Finance Controller',    dept: 'Finance',     status: 'Active',  avatar: 'JO', joined: 'Apr 2021' },
-]
-
-const deptColors = {
-  Design: 'violet', Engineering: 'info', HR: 'success',
-  Marketing: 'warning', Analytics: 'danger', Finance: 'info',
-}
-
-const statusVariant = { Active: 'success', 'On Leave': 'warning', Inactive: 'danger' }
-
-// Static leave-days per employee (mirrors leave request data)
-// In a real app this would come from an API / shared state
-const EMPLOYEE_LEAVE_DAYS = {
-  'Sarah Johnson': 2,
-  'Marcus Rivera':  3,
-  'Priya Nair':     9,   // high — multiple sick + annual
-  'Tom Kellaway':   5,
-  'Aisha Okonkwo':  2,
-  'Daniel Park':    1,
-  'Lena Fischer':   0,
-  'James Okafor':   4,
-}
+// Removed static employees array to rely completely on Supabase
 
 const avatarGradients = [
   'from-indigo-500 to-violet-600',
@@ -48,14 +21,112 @@ const avatarGradients = [
 ]
 
 export default function EmployeesPage() {
+  const [stats, setStats] = useState({
+    totalEmployees: 0,
+    presentToday: 0,
+    onLeaveToday: 0,
+    highRisk: 0,
+  })
+
+  // Data states
+  const [employeeList, setEmployeeList] = useState([])
+  const [debugData, setDebugData] = useState(null)
+  const [debugError, setDebugError] = useState(null)
+
+  useEffect(() => {
+    async function fetchInsights() {
+      // 1. Verify Configuration & Connection
+      // console.log("Supabase URL:", import.meta.env.VITE_SUPABASE_URL)
+      // console.log("Supabase Key Check:", !!import.meta.env.VITE_SUPABASE_ANON_KEY)
+      
+      const { data: attData, error: attError } = await supabase.from('attendance').select('*')
+      const { data: leaveData, error: leaveError } = await supabase.from('leave_requests').select('*')
+
+      if (attError) {
+        console.error("Supabase Attendance Fetch Error:", attError)
+        setDebugError(attError)
+      } else {
+        // console.log("Supabase Attendance Data:", attData)
+      }
+
+      if (leaveError) {
+        console.error("Supabase Leave Fetch Error:", leaveError)
+        if (!attError) setDebugError(leaveError)
+      } else {
+        // console.log("Supabase Leave Data:", leaveData)
+      }
+
+      setDebugData({ attendance: attData, leave_requests: leaveData })
+
+      const uniqueNames = new Set()
+      let present = 0
+      let leave = 0
+      const today = '2026-05-02' // Match dummy data logic
+
+      if (attData) {
+        attData.forEach(r => {
+          uniqueNames.add(r.employee_name)
+          if (r.date === today) {
+            if (r.status === 'Present') present++
+            if (r.status === 'Leave') leave++
+          }
+        })
+      }
+
+      let highRiskCount = 0
+      let leaveCountsMap = new Map()
+
+      if (leaveData) {
+        leaveData.forEach(r => uniqueNames.add(r.employee_name))
+        
+        const processedLeaves = leaveData.map(r => {
+          const st = new Date(r.start_date)
+          const en = new Date(r.end_date)
+          const diff = (en - st) / 86400000 + 1
+          return { name: r.employee_name, days: diff > 0 ? diff : 0 }
+        })
+        leaveCountsMap = buildLeaveCounts(processedLeaves)
+        for (const totalDays of leaveCountsMap.values()) {
+          if (getRiskLevel(totalDays) === RISK_LEVELS.HIGH_RISK) {
+            highRiskCount++
+          }
+        }
+      }
+
+      setStats({
+        totalEmployees: uniqueNames.size || 0,
+        presentToday: present,
+        onLeaveToday: leave,
+        highRisk: highRiskCount,
+      })
+
+      // Generate dynamic employee list from fetched unique names
+      const dynamicEmployees = Array.from(uniqueNames).map((name, idx) => {
+        return {
+          id: idx + 1,
+          name: name,
+          avatar: name.substring(0, 2).toUpperCase(),
+          role: 'Employee', // Placeholder since role isn't in DB
+          dept: 'General', // Placeholder
+          status: 'Active',
+          joined: 'Jan 2026',
+          leaveRiskDays: leaveCountsMap.get(name) || 0
+        }
+      })
+      setEmployeeList(dynamicEmployees)
+    }
+    fetchInsights()
+  }, [])
+
   return (
     <div>
-      {/* Stats row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard icon={Users}     label="Total Employees" value="248"  trend="+12 this month" trendUp color="indigo"  />
-        <StatCard icon={UserCheck} label="Active"          value="231"  trend="93% rate"       trendUp color="emerald" />
-        <StatCard icon={UserX}     label="On Leave"        value="11"   trend="-2 vs last week" color="amber"  />
-        <StatCard icon={UserPlus}  label="New Hires"       value="12"   trend="+4 this month"  trendUp color="violet"  />
+      {/* HR Insights Panel */}
+      <h2 className="text-lg font-bold text-slate-200 mb-4 tracking-tight">HR Insights Panel</h2>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <StatCard icon={Users}         label="Total Employees" value={stats.totalEmployees} trend="Unique directory" color="indigo"  />
+        <StatCard icon={UserCheck}     label="Present Today"   value={stats.presentToday}  trend="Checked in" color="emerald" />
+        <StatCard icon={UserX}         label="On Leave Today"  value={stats.onLeaveToday}  trend="Out of office" color="amber"  />
+        <StatCard icon={AlertTriangle} label="High Risk"       value={stats.highRisk}      trend="Burnout alert" color="rose"  />
       </div>
 
       {/* Table card */}
@@ -79,7 +150,7 @@ export default function EmployeesPage() {
               </tr>
             </thead>
             <tbody>
-              {employees.map((emp, idx) => (
+              {employeeList.map((emp, idx) => (
                 <tr
                   key={emp.id}
                   className="border-b border-slate-800/40 hover:bg-slate-800/30 transition-colors group"
@@ -96,17 +167,17 @@ export default function EmployeesPage() {
                           <span className="text-xs text-slate-500">{emp.name.toLowerCase().replace(' ', '.')}@skywalkers.io</span>
                         </div>
                         <div className="mt-1">
-                          <RiskBadge risk={getRiskLevel(EMPLOYEE_LEAVE_DAYS[emp.name] ?? 0)} />
+                          <RiskBadge risk={getRiskLevel(emp.leaveRiskDays)} />
                         </div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <Badge variant={deptColors[emp.dept] ?? 'default'}>{emp.dept}</Badge>
+                    <Badge variant="default">{emp.dept}</Badge>
                   </td>
                   <td className="px-6 py-4 text-slate-400">{emp.role}</td>
                   <td className="px-6 py-4">
-                    <Badge variant={statusVariant[emp.status]}>{emp.status}</Badge>
+                    <Badge variant="success">{emp.status}</Badge>
                   </td>
                   <td className="px-6 py-4 text-slate-500">{emp.joined}</td>
                   <td className="px-6 py-4">
@@ -118,6 +189,33 @@ export default function EmployeesPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      </Card>
+
+      {/* Temporary Debug UI */}
+      <Card className="mt-8 border-dashed border-2 border-indigo-500/50">
+        <div className="px-6 py-4 border-b border-slate-800/60 bg-indigo-500/10">
+          <h3 className="font-semibold text-indigo-400 flex items-center gap-2">
+            <AlertTriangle size={16} />
+            Supabase Connection Debug
+          </h3>
+        </div>
+        <div className="p-6 overflow-auto max-h-96 text-xs text-slate-300 font-mono bg-slate-900">
+          {debugError && (
+            <div className="text-rose-400 mb-4 pb-4 border-b border-slate-800">
+              <strong className="text-rose-500">ERROR FETCHING DATA:</strong><br />
+              {JSON.stringify(debugError, null, 2)}
+            </div>
+          )}
+          {debugData && (
+            <div>
+              <strong className="text-emerald-400">DATA SUCCESSFULLY FETCHED:</strong><br />
+              <div className="mt-2 text-indigo-300">attendance table:</div>
+              {JSON.stringify(debugData.attendance, null, 2)}
+              <div className="mt-4 text-indigo-300">leave_requests table:</div>
+              {JSON.stringify(debugData.leave_requests, null, 2)}
+            </div>
+          )}
         </div>
       </Card>
     </div>

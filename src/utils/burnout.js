@@ -4,10 +4,10 @@
  * Calculates a risk level for an employee based on how many
  * leave days they have taken or requested.
  *
- * Thresholds (easy to tune for your org):
- *   0 – 3  days  →  "Normal"    (green)
- *   4 – 7  days  →  "Warning"   (amber)
- *   8+     days  →  "High Risk" (red)
+ * Thresholds:
+ *   0 – 2  days  →  "Normal"    (green)
+ *   3 – 5  days  →  "Warning"   (amber)
+ *   6+     days  →  "High Risk" (red)
  */
 
 export const RISK_LEVELS = {
@@ -21,8 +21,8 @@ export const RISK_LEVELS = {
  * Returns one of the RISK_LEVELS values.
  */
 export function getRiskLevel(totalLeaveDays) {
-  if (totalLeaveDays >= 8) return RISK_LEVELS.HIGH_RISK
-  if (totalLeaveDays >= 4) return RISK_LEVELS.WARNING
+  if (totalLeaveDays >= 6) return RISK_LEVELS.HIGH_RISK
+  if (totalLeaveDays >= 3) return RISK_LEVELS.WARNING
   return RISK_LEVELS.NORMAL
 }
 

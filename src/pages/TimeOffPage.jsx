@@ -5,13 +5,10 @@ import Badge from '../components/ui/Badge'
 import Card from '../components/ui/Card'
 import ApplyLeaveModal from '../components/ApplyLeaveModal'
 
-// ── Initial dummy data ──────────────────────────────────────────────────────
-const INITIAL_REQUESTS = [
-  { name: 'Tom Kellaway',  avatar: 'TK', grad: 'from-amber-400 to-orange-500',  type: 'Annual Leave',   from: 'May 5',  to: 'May 9',  days: 5, status: 'Pending',  reason: 'Family vacation' },
-  { name: 'Priya Nair',    avatar: 'PN', grad: 'from-rose-400 to-pink-600',     type: 'Sick Leave',     from: 'May 2',  to: 'May 3',  days: 2, status: 'Approved', reason: 'Medical appointment' },
-  { name: 'Daniel Park',   avatar: 'DP', grad: 'from-violet-400 to-purple-600', type: 'Personal Leave', from: 'May 10', to: 'May 10', days: 1, status: 'Rejected', reason: 'Personal errands' },
-  { name: 'Aisha Okonkwo', avatar: 'AO', grad: 'from-sky-400 to-blue-600',     type: 'Annual Leave',   from: 'May 15', to: 'May 16', days: 2, status: 'Pending',  reason: 'Travel' },
-]
+import { useEffect } from 'react'
+import { supabase } from '../utils/supabaseClient'
+
+// Removed INITIAL_REQUESTS - fetching from Supabase instead
 
 const statusVariant = { Pending: 'warning', Approved: 'success', Rejected: 'danger' }
 
@@ -22,15 +19,51 @@ const leaveTypes = [
   { label: 'Work From Home', used: 12, total: 24, color: 'bg-emerald-500' },
 ]
 
+function fmtDate(iso) {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
 export default function TimeOffPage() {
   const [modalOpen, setModalOpen]         = useState(false)
-  // ── Requests stored in state so Approve / Reject updates the UI instantly ──
-  const [leaveRequests, setLeaveRequests] = useState(INITIAL_REQUESTS)
+  const [leaveRequests, setLeaveRequests] = useState([])
 
-  const updateStatus = (index, newStatus) => {
-    setLeaveRequests(prev =>
-      prev.map((r, i) => (i === index ? { ...r, status: newStatus } : r))
-    )
+  const fetchLeaves = async () => {
+    const { data, error } = await supabase.from('leave_requests').select('*').order('id', { ascending: false })
+    if (error) {
+      // console.error('Error fetching leaves:', error)
+      return
+    }
+    if (data) {
+      const mapped = data.map(dbRow => {
+        const st = new Date(dbRow.start_date)
+        const en = new Date(dbRow.end_date)
+        const diff = (en - st) / 86400000 + 1
+        return {
+          id: dbRow.id,
+          name: dbRow.employee_name,
+          avatar: dbRow.employee_name ? dbRow.employee_name.substring(0, 2).toUpperCase() : '??',
+          grad: 'from-indigo-500 to-violet-600',
+          type: dbRow.leave_type === 'Paid Leave' ? 'Annual Leave' : dbRow.leave_type === 'Unpaid Leave' ? 'Personal Leave' : dbRow.leave_type,
+          from: fmtDate(dbRow.start_date),
+          to: fmtDate(dbRow.end_date),
+          days: Math.round(diff > 0 ? diff : 0),
+          status: dbRow.status,
+          reason: dbRow.reason,
+        }
+      })
+      setLeaveRequests(mapped)
+    }
+  }
+
+  useEffect(() => {
+    ;(async () => { await fetchLeaves() })()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+
+  const updateStatus = async (id, newStatus) => {
+    const { error } = await supabase.from('leave_requests').update({ status: newStatus }).eq('id', id)
+    if (error) return
+    setLeaveRequests(prev => prev.map(r => r.id === id ? { ...r, status: newStatus } : r))
   }
 
   const pending  = leaveRequests.filter(r => r.status === 'Pending').length
@@ -127,13 +160,13 @@ export default function TimeOffPage() {
                     {r.status === 'Pending' ? (
                       <div className="flex gap-2">
                         <button
-                          onClick={() => updateStatus(i, 'Approved')}
+                          onClick={() => updateStatus(r.id, 'Approved')}
                           className="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 active:scale-95
                             text-white text-xs font-semibold transition-all shadow-sm shadow-emerald-900/40">
                           Approve
                         </button>
                         <button
-                          onClick={() => updateStatus(i, 'Rejected')}
+                          onClick={() => updateStatus(r.id, 'Rejected')}
                           className="px-2.5 py-1 rounded-lg bg-rose-500 hover:bg-rose-400 active:scale-95
                             text-white text-xs font-semibold transition-all shadow-sm shadow-rose-900/40">
                           Reject
@@ -152,9 +185,26 @@ export default function TimeOffPage() {
 
       <ApplyLeaveModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => { setModalOpen(false); fetchLeaves() }}
         employeeName="Admin User"
       />
+
+      {/* Temporary Debug UI */}
+      <Card className="mt-8 border-dashed border-2 border-indigo-500/50">
+        <div className="px-6 py-4 border-b border-slate-800/60 bg-indigo-500/10">
+          <h3 className="font-semibold text-indigo-400 flex items-center gap-2">
+            <CalendarOff size={16} />
+            Time Off Connection Debug
+          </h3>
+        </div>
+        <div className="p-6 overflow-auto max-h-96 text-xs text-slate-300 font-mono bg-slate-900">
+          <div>
+            <strong className="text-emerald-400">DATA SUCCESSFULLY FETCHED:</strong><br />
+            <div className="mt-2 text-indigo-300">leaveRequests:</div>
+            {JSON.stringify(leaveRequests, null, 2)}
+          </div>
+        </div>
+      </Card>
     </div>
   )
 }

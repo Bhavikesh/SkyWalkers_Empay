@@ -1,32 +1,12 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { CalendarCheck, Clock, CheckCircle2, XCircle, Search, Calendar } from 'lucide-react'
 import StatCard from '../components/ui/StatCard'
 import Card from '../components/ui/Card'
+import { supabase } from '../utils/supabaseClient'
+import { RiskBadge } from '../components/ui/Badge'
+import { buildLeaveCounts, getRiskLevel } from '../utils/burnout'
 
-// ── Dummy attendance records ─────────────────────────────────────────────────
-const RECORDS = [
-  // 2026-05-02
-  { id: 1,  name: 'Sarah Johnson',  avatar: 'SJ', grad: 'from-indigo-500 to-violet-600', date: '2026-05-02', checkIn: '08:52 AM', checkOut: '06:10 PM', hours: '9h 18m', status: 'Present' },
-  { id: 2,  name: 'Marcus Rivera',  avatar: 'MR', grad: 'from-emerald-400 to-teal-600',  date: '2026-05-02', checkIn: '09:01 AM', checkOut: '06:30 PM', hours: '9h 29m', status: 'Present' },
-  { id: 3,  name: 'Priya Nair',     avatar: 'PN', grad: 'from-rose-400 to-pink-600',     date: '2026-05-02', checkIn: '10:15 AM', checkOut: '07:00 PM', hours: '8h 45m', status: 'Late'    },
-  { id: 4,  name: 'Tom Kellaway',   avatar: 'TK', grad: 'from-amber-400 to-orange-500',  date: '2026-05-02', checkIn: '—',        checkOut: '—',        hours: '—',      status: 'Absent'  },
-  { id: 5,  name: 'Aisha Okonkwo',  avatar: 'AO', grad: 'from-sky-400 to-blue-600',      date: '2026-05-02', checkIn: '08:45 AM', checkOut: '05:50 PM', hours: '9h 05m', status: 'Present' },
-  { id: 6,  name: 'Lena Fischer',   avatar: 'LF', grad: 'from-violet-400 to-purple-600', date: '2026-05-02', checkIn: '08:30 AM', checkOut: '05:30 PM', hours: '9h 00m', status: 'Present' },
-  { id: 7,  name: 'James Caldwell', avatar: 'JC', grad: 'from-cyan-400 to-sky-600',      date: '2026-05-02', checkIn: '—',        checkOut: '—',        hours: '—',      status: 'Leave'   },
-  { id: 8,  name: 'Nina Volkov',    avatar: 'NV', grad: 'from-lime-400 to-green-600',    date: '2026-05-02', checkIn: '09:00 AM', checkOut: '06:00 PM', hours: '9h 00m', status: 'Present' },
-  // 2026-05-01
-  { id: 9,  name: 'Sarah Johnson',  avatar: 'SJ', grad: 'from-indigo-500 to-violet-600', date: '2026-05-01', checkIn: '08:55 AM', checkOut: '06:00 PM', hours: '9h 05m', status: 'Present' },
-  { id: 10, name: 'Marcus Rivera',  avatar: 'MR', grad: 'from-emerald-400 to-teal-600',  date: '2026-05-01', checkIn: '—',        checkOut: '—',        hours: '—',      status: 'Absent'  },
-  { id: 11, name: 'Priya Nair',     avatar: 'PN', grad: 'from-rose-400 to-pink-600',     date: '2026-05-01', checkIn: '09:05 AM', checkOut: '06:15 PM', hours: '9h 10m', status: 'Present' },
-  { id: 12, name: 'Tom Kellaway',   avatar: 'TK', grad: 'from-amber-400 to-orange-500',  date: '2026-05-01', checkIn: '10:30 AM', checkOut: '06:30 PM', hours: '8h 00m', status: 'Late'    },
-  { id: 13, name: 'Aisha Okonkwo',  avatar: 'AO', grad: 'from-sky-400 to-blue-600',      date: '2026-05-01', checkIn: '08:40 AM', checkOut: '05:45 PM', hours: '9h 05m', status: 'Present' },
-  { id: 14, name: 'Lena Fischer',   avatar: 'LF', grad: 'from-violet-400 to-purple-600', date: '2026-05-01', checkIn: '—',        checkOut: '—',        hours: '—',      status: 'Leave'   },
-  // 2026-04-30
-  { id: 15, name: 'Sarah Johnson',  avatar: 'SJ', grad: 'from-indigo-500 to-violet-600', date: '2026-04-30', checkIn: '08:50 AM', checkOut: '06:05 PM', hours: '9h 15m', status: 'Present' },
-  { id: 16, name: 'James Caldwell', avatar: 'JC', grad: 'from-cyan-400 to-sky-600',      date: '2026-04-30', checkIn: '09:10 AM', checkOut: '06:20 PM', hours: '9h 10m', status: 'Present' },
-  { id: 17, name: 'Nina Volkov',    avatar: 'NV', grad: 'from-lime-400 to-green-600',    date: '2026-04-30', checkIn: '—',        checkOut: '—',        hours: '—',      status: 'Absent'  },
-  { id: 18, name: 'Marcus Rivera',  avatar: 'MR', grad: 'from-emerald-400 to-teal-600',  date: '2026-04-30', checkIn: '09:00 AM', checkOut: '06:10 PM', hours: '9h 10m', status: 'Present' },
-]
+// Removed static RECORDS array - fetching from Supabase instead
 
 // ── Status badge config ───────────────────────────────────────────────────────
 
@@ -58,17 +38,86 @@ function fmtDate(iso) {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function AttendancePage() {
+  const [records, setRecords]       = useState([])
   const [search,     setSearch]     = useState('')
-  const [dateFilter, setDateFilter] = useState('2026-05-02') // match dummy data
+  const [dateFilter, setDateFilter] = useState('2026-05-02') // Default filter
+  const [leaveCounts, setLeaveCounts] = useState(new Map())
+
+  useEffect(() => {
+    const fetchAttendanceAndLeaves = async () => {
+      // Fetch attendance
+      const { data: attData, error: attError } = await supabase
+        .from('attendance')
+        .select('*')
+        .order('date', { ascending: false })
+      
+      // Fetch leaves to compute burnout risk
+      const { data: leaveData } = await supabase
+        .from('leave_requests')
+        .select('*')
+      
+      if (leaveData) {
+        // Compute days same way as leave dashboard
+        const processedLeaves = leaveData.map(r => {
+          const st = new Date(r.start_date)
+          const en = new Date(r.end_date)
+          const diff = (en - st) / 86400000 + 1
+          return { name: r.employee_name, days: diff > 0 ? diff : 0 }
+        })
+        setLeaveCounts(buildLeaveCounts(processedLeaves))
+      }
+
+      if (attError) {
+        // console.error('Error fetching attendance:', attError)
+        return
+      }
+
+      // console.log('Attendance Records Fetched:', attData)
+      // console.log('Leave Counts for Risk:', leaveData)
+
+      if (attData) {
+        const mapped = attData.map(row => {
+          // Calculate dummy hours just for UI if present
+          let hours = '—'
+          if (row.check_in && row.check_out && row.check_in !== '—' && row.check_out !== '—') {
+            hours = '9h 00m' // simplified dummy calculation for now
+          }
+
+          const gradients = [
+            'from-indigo-500 to-violet-600',
+            'from-emerald-400 to-teal-600',
+            'from-rose-400 to-pink-600',
+            'from-amber-400 to-orange-500',
+            'from-sky-400 to-blue-600'
+          ]
+          const grad = gradients[row.employee_name.length % gradients.length]
+
+          return {
+            id: row.id,
+            name: row.employee_name,
+            avatar: row.employee_name ? row.employee_name.substring(0, 2).toUpperCase() : '??',
+            grad,
+            date: row.date,
+            checkIn: row.check_in || '—',
+            checkOut: row.check_out || '—',
+            hours,
+            status: row.status,
+          }
+        })
+        setRecords(mapped)
+      }
+    }
+    fetchAttendanceAndLeaves()
+  }, [])
 
   // ── Filter records ──────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
-    return RECORDS.filter(r => {
+    return records.filter(r => {
       const matchName = r.name.toLowerCase().includes(search.toLowerCase())
       const matchDate = dateFilter === '' || r.date === dateFilter
       return matchName && matchDate
     })
-  }, [search, dateFilter])
+  }, [records, search, dateFilter])
 
   // ── Derived stats (from filtered set) ──────────────────────────────────────
   const present = filtered.filter(r => r.status === 'Present').length
@@ -178,7 +227,12 @@ export default function AttendancePage() {
                         <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${r.grad} flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-lg`}>
                           {r.avatar}
                         </div>
-                        <span className="font-medium text-slate-200 whitespace-nowrap">{r.name}</span>
+                        <div>
+                          <p className="font-medium text-slate-200 whitespace-nowrap">{r.name}</p>
+                          <div className="mt-1">
+                            <RiskBadge risk={getRiskLevel(leaveCounts.get(r.name) ?? 0)} />
+                          </div>
+                        </div>
                       </div>
                     </td>
 
@@ -229,8 +283,27 @@ export default function AttendancePage() {
         <div className="px-6 py-3.5 border-t border-slate-800/40">
           <p className="text-xs text-slate-600">
             Showing <span className="text-slate-400 font-medium">{filtered.length}</span> of{' '}
-            <span className="text-slate-400 font-medium">{RECORDS.length}</span> total records
+            <span className="text-slate-400 font-medium">{records.length}</span> total records
           </p>
+        </div>
+      </Card>
+
+      {/* Temporary Debug UI */}
+      <Card className="mt-8 border-dashed border-2 border-indigo-500/50">
+        <div className="px-6 py-4 border-b border-slate-800/60 bg-indigo-500/10">
+          <h3 className="font-semibold text-indigo-400 flex items-center gap-2">
+            <Clock size={16} />
+            Attendance Connection Debug
+          </h3>
+        </div>
+        <div className="p-6 overflow-auto max-h-96 text-xs text-slate-300 font-mono bg-slate-900">
+          <div>
+            <strong className="text-emerald-400">DATA SUCCESSFULLY FETCHED:</strong><br />
+            <div className="mt-2 text-indigo-300">records (mapped):</div>
+            {JSON.stringify(records, null, 2)}
+            <div className="mt-4 text-indigo-300">raw leave counts map:</div>
+            {JSON.stringify(Array.from(leaveCounts.entries()), null, 2)}
+          </div>
         </div>
       </Card>
     </div>
