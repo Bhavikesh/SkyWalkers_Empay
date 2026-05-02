@@ -52,8 +52,8 @@ export async function createUser(formData: FormData) {
   const randomSuffix = Math.floor(1000 + Math.random() * 9000).toString()
   const loginId = `${companyCode.toUpperCase()}${initials}${year}${randomSuffix}`
   
-  // Generate random password
-  const password = Math.random().toString(36).slice(-8) + 'A1!'
+  // Generate random password (alphanumeric only to avoid copy-paste confusion)
+  const password = Math.random().toString(36).slice(-8) + 'A1'
 
   // Get Role ID (checking within the company's roles or system default roles)
   const { data: roleData } = await supabaseAdmin
