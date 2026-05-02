@@ -9,7 +9,7 @@ import {
   Printer,
   CheckCircle2,
 } from 'lucide-react';
-import { usePayrollContext } from '../context/PayrollContext';
+import { usePayroll } from '../context/PayrollContext';
 import EmployeeInfoSection from '../components/Payslip/EmployeeInfoSection';
 import WorkedDaysTab from '../components/Payslip/WorkedDaysTab';
 import SalaryComputationTab from '../components/Payslip/SalaryComputationTab';
@@ -27,7 +27,7 @@ export default function PayslipView() {
     validatePayslip,
     markAsPaid,
     cancelPayslip,
-  } = usePayrollContext();
+  } = usePayroll();
   const [activeTab, setActiveTab] = useState('worked-days');
 
   // Find payslip from payruns if not selected

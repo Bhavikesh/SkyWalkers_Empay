@@ -55,3 +55,6 @@ export function usePayroll() {
   if (!ctx) throw new Error('usePayroll must be used within PayrollProvider')
   return ctx
 }
+
+// Alias export for backwards compatibility
+export const usePayrollContext = usePayroll

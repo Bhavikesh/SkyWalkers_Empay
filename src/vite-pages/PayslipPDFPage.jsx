@@ -1,13 +1,13 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Download } from 'lucide-react';
-import { usePayrollContext } from '../context/PayrollContext';
+import { usePayroll } from '../context/PayrollContext';
 import PayslipPDF from '../components/PayslipPDF/PayslipPDF';
 import Button from '../components/common/Button';
 
 export default function PayslipPDFPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { payruns, selectedPayslip } = usePayrollContext();
+  const { payruns, selectedPayslip } = usePayroll();
 
   let payslip = selectedPayslip;
   if (!payslip || (id && payslip.id !== parseInt(id))) {

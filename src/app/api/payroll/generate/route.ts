@@ -54,7 +54,16 @@ export async function POST(request: NextRequest) {
   // Calculate working days in the month (excluding weekends)
   const workingDays = getWorkingDaysInMonth(payMonth, payYear)
 
-  const results = []
+  interface PayrollResult {
+    employee_id: string;
+    employee_name?: string;
+    status: 'processed' | 'skipped' | 'error';
+    reason?: string;
+    net_salary?: number;
+    payroll_id?: string;
+  }
+
+  const results: PayrollResult[] = []
 
   for (const salary of salaryData) {
     const empProfile = salary.profiles as { id: string; first_name: string; last_name: string; login_id: string; department: string; is_active: boolean }

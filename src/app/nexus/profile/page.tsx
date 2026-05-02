@@ -57,7 +57,7 @@ export default async function ProfilePage() {
   }
 
   // 6. Get recent payslips (linked to employee record)
-  let payslips = []
+  let payslips: any[] = []
   if (employee) {
     const { data } = await supabase
       .from('payslips')

@@ -39,8 +39,8 @@ export default function EmployeesPage() {
 
   const fetchInsights = async () => {
       // 1. Verify Configuration & Connection
-      // console.log("Supabase URL:", import.meta.env.VITE_SUPABASE_URL)
-      // console.log("Supabase Key Check:", !!import.meta.env.VITE_SUPABASE_ANON_KEY)
+      // console.log("Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL)
+      // console.log("Supabase Key Check:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
       
       const { data: attData, error: attError } = await supabase.from('attendance').select('*')
       const { data: leaveData, error: leaveError } = await supabase.from('leave_requests').select('*')

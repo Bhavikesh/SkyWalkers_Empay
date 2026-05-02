@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Play, Calculator, ShieldCheck, Wallet, ArrowLeft } from 'lucide-react';
-import { usePayrollContext } from '../context/PayrollContext';
+import { usePayroll } from '../context/PayrollContext';
 import PayrunTable from '../components/Payrun/PayrunTable';
 import Button from '../components/common/Button';
 import StatusBadge from '../components/common/StatusBadge';
@@ -14,7 +14,7 @@ export default function PayrunPage() {
     selectPayslip,
     computeAllInPayrun,
     validateAllInPayrun,
-  } = usePayrollContext();
+  } = usePayroll();
   const navigate = useNavigate();
 
   // Use first payrun if none selected

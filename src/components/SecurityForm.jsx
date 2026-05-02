@@ -41,7 +41,7 @@ export function SecurityForm({
     setSending(true)
     try {
       const data = await generateAndSendCredentials({
-        supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
         employeeId,
         email: email.trim(),
         employeeName,

@@ -52,7 +52,21 @@ export async function GET(request: NextRequest) {
     if (dow !== 0 && dow !== 6) workingDays++
   }
 
-  const report = []
+  interface AttendanceReportRow {
+    employee_id: string;
+    employee_name: string;
+    login_id: string;
+    department: string | null;
+    working_days: number;
+    days_present: number;
+    half_days: number;
+    days_absent: number;
+    leaves: number;
+    total_hours: number;
+    attendance_percent: number;
+  }
+
+  const report: AttendanceReportRow[] = []
 
   for (const emp of employees) {
     // Get attendance for this employee in the period
