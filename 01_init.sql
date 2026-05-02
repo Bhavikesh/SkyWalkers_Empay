@@ -102,6 +102,11 @@ ON public.roles FOR SELECT
 USING (company_id IS NULL OR company_id = public.get_auth_company_id());
 
 -- Profiles (Multi-Tenant + Permissions)
+-- 0. Users can ALWAYS read their own profile (prevents circular RLS dependency)
+CREATE POLICY "Users can always read own profile"
+ON public.profiles FOR SELECT
+USING (id = auth.uid());
+
 -- 1. Everyone can view profiles in their company (needed for directory)
 CREATE POLICY "Users can view profiles in their company" 
 ON public.profiles FOR SELECT 

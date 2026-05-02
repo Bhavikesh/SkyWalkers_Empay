@@ -1,7 +1,9 @@
 import { registerCompany } from './actions'
 import Link from 'next/link'
 
-export default function RegisterPage({ searchParams }: { searchParams: { message: string } }) {
+export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ message?: string }> }) {
+  const params = await searchParams
+
   return (
     <div className="flex-1 flex flex-col w-full px-8 py-12 sm:max-w-xl mx-auto">
       <div className="flex flex-col mb-8 text-center">
@@ -11,9 +13,9 @@ export default function RegisterPage({ searchParams }: { searchParams: { message
 
       <form action={registerCompany} className="bg-white p-8 border rounded-xl shadow-md flex-1 flex flex-col w-full justify-center gap-4 text-foreground">
         
-        {searchParams?.message && (
+        {params?.message && (
           <p className="p-4 bg-red-100 text-red-600 text-center rounded-md">
-            {searchParams.message}
+            {params.message}
           </p>
         )}
 

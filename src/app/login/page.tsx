@@ -1,6 +1,9 @@
 import { login } from './actions'
+import Link from 'next/link'
 
-export default function LoginPage({ searchParams }: { searchParams: { message: string } }) {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ message?: string }> }) {
+  const params = await searchParams
+
   return (
     <div className="flex-1 flex flex-col w-full px-8 sm:max-w-md justify-center gap-2 h-screen mx-auto">
       <div className="flex flex-col mb-8 text-center">
@@ -34,11 +37,15 @@ export default function LoginPage({ searchParams }: { searchParams: { message: s
         >
           Sign In
         </button>
-        {searchParams?.message && (
+        {params?.message && (
           <p className="mt-4 p-4 bg-red-100 text-red-600 text-center rounded-md">
-            {searchParams.message}
+            {params.message}
           </p>
         )}
+
+        <p className="text-center text-sm text-gray-500 mt-4">
+          New company? <Link href="/register" className="text-blue-600 hover:underline">Register here</Link>
+        </p>
       </form>
     </div>
   )
