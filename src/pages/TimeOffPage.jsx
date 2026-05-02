@@ -1,4 +1,3 @@
-"use client";
 import { useState } from 'react'
 import { CalendarOff, Clock, CheckCircle, XCircle, Plus } from 'lucide-react'
 import StatCard from '../components/ui/StatCard'

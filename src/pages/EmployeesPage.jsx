@@ -1,4 +1,3 @@
-"use client";
 import { useState, useEffect } from 'react'
 import { Users, UserPlus, UserCheck, UserX, MoreHorizontal, Mail, AlertTriangle } from 'lucide-react'
 import StatCard from '../components/ui/StatCard'
@@ -7,6 +6,7 @@ import { RiskBadge } from '../components/ui/Badge'
 import Card from '../components/ui/Card'
 import { getRiskLevel, buildLeaveCounts, RISK_LEVELS } from '../utils/burnout'
 import { supabase } from '../utils/supabaseClient'
+import AddEmployeeModal from '../components/AddEmployeeModal'
 
 // Removed static employees array to rely completely on Supabase
 
@@ -33,9 +33,11 @@ export default function EmployeesPage() {
   const [employeeList, setEmployeeList] = useState([])
   const [debugData, setDebugData] = useState(null)
   const [debugError, setDebugError] = useState(null)
+  
+  // Modal state
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
-  useEffect(() => {
-    async function fetchInsights() {
+  const fetchInsights = async () => {
       // 1. Verify Configuration & Connection
       // console.log("Supabase URL:", import.meta.env.VITE_SUPABASE_URL)
       // console.log("Supabase Key Check:", !!import.meta.env.VITE_SUPABASE_ANON_KEY)
@@ -60,19 +62,22 @@ export default function EmployeesPage() {
       setDebugData({ attendance: attData, leave_requests: leaveData })
 
       const uniqueNames = new Set()
-      let present = 0
-      let leave = 0
+      const presentNames = new Set()
+      const leaveNames = new Set()
       const today = '2026-05-02' // Match dummy data logic
 
       if (attData) {
         attData.forEach(r => {
           uniqueNames.add(r.employee_name)
           if (r.date === today) {
-            if (r.status === 'Present') present++
-            if (r.status === 'Leave') leave++
+            if (r.status === 'Present') presentNames.add(r.employee_name)
+            if (r.status === 'Leave') leaveNames.add(r.employee_name)
           }
         })
       }
+      
+      let present = presentNames.size
+      let leave = leaveNames.size
 
       let highRiskCount = 0
       let leaveCountsMap = new Map()
@@ -116,7 +121,9 @@ export default function EmployeesPage() {
       })
       setEmployeeList(dynamicEmployees)
     }
-    fetchInsights()
+    
+  useEffect(() => {
+    ;(async () => { await fetchInsights() })()
   }, [])
 
   return (
@@ -134,7 +141,10 @@ export default function EmployeesPage() {
       <Card>
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800/60">
           <h3 className="font-semibold text-slate-200">All Employees</h3>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors">
+          <button 
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
+          >
             <UserPlus size={14} />
             Add Employee
           </button>
@@ -219,6 +229,13 @@ export default function EmployeesPage() {
           )}
         </div>
       </Card>
+      {/* Add Employee Modal */}
+      <AddEmployeeModal 
+        open={isAddModalOpen} 
+        onClose={() => setIsAddModalOpen(false)} 
+        onSuccess={() => fetchInsights()} 
+      />
+
     </div>
   )
 }

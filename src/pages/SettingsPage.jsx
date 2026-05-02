@@ -1,4 +1,3 @@
-"use client";
 import { Settings, Bell, Shield, Globe, Save } from 'lucide-react'
 import Card from '../components/ui/Card'
 

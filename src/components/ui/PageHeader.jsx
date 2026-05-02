@@ -1,4 +1,3 @@
-"use client";
 export default function PageHeader({ title, subtitle, action }) {
   return (
     <div className="flex items-start justify-between mb-6">

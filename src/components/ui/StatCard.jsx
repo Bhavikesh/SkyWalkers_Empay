@@ -1,4 +1,3 @@
-"use client";
 export default function StatCard({ icon: Icon, label, value, trend, trendUp, color = 'indigo' }) {
   const colorMap = {
     indigo:  { bg: 'bg-indigo-500/10',  icon: 'text-indigo-400',  border: 'border-indigo-500/20' },

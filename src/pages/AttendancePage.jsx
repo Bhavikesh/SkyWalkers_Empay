@@ -1,4 +1,3 @@
-"use client";
 import { useState, useMemo, useEffect } from 'react'
 import { CalendarCheck, Clock, CheckCircle2, XCircle, Search, Calendar } from 'lucide-react'
 import StatCard from '../components/ui/StatCard'

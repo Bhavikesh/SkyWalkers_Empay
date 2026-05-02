@@ -1,4 +1,3 @@
-"use client";
 export default function Badge({ children, variant = 'default' }) {
   const variants = {
     default:  'bg-slate-700/60 text-slate-300',
