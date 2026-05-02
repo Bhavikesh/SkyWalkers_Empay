@@ -69,5 +69,8 @@ export async function registerCompany(formData: FormData) {
     })
   }
 
+  // 5. Sign the user in so a session cookie is created (admin.createUser doesn't do this)
+  await supabase.auth.signInWithPassword({ email, password })
+
   redirect('/dashboard')
 }
