@@ -1,0 +1,3 @@
+[functions.generate-credentials]
+verify_jwt = false
+

@@ -12,9 +12,9 @@ function initials(name) {
 }
 
 const statusMap = {
-  present: { icon: '●', label: 'Present', className: 'text-emerald-400' },
-  leave: { icon: '✈', label: 'On Leave', className: 'text-sky-400' },
-  absent: { icon: '●', label: 'Absent', className: 'text-amber-400' },
+  present: { icon: '●', label: 'Present', className: 'text-2xl text-emerald-400' },
+  leave: { icon: '✈', label: 'On Leave', className: 'text-xl text-sky-400' },
+  absent: { icon: '●', label: 'Absent', className: 'text-2xl text-amber-400' },
 }
 
 export function EmployeeCard({ employee }) {
@@ -31,7 +31,7 @@ export function EmployeeCard({ employee }) {
       }}
       className="group relative flex w-full flex-col gap-3 rounded-xl border border-gray-800 bg-[#111827] p-5 text-left shadow-md transition duration-200 hover:scale-[1.02] hover:border-violet-500/40 hover:shadow-xl"
     >
-      <span className={`absolute right-4 top-4 text-sm font-semibold ${status.className}`} title={status.label}>
+      <span className={`absolute right-3 top-2.5 leading-none font-semibold ${status.className}`} title={status.label}>
         {status.icon}
       </span>
       <div

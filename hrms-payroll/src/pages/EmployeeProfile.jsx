@@ -40,6 +40,7 @@ export default function EmployeeProfile() {
   const location = useLocation()
   const { employees, currentUserEmployee, role, selectEmployee, updateEmployee } = useEmployees()
   const [activeTab, setActiveTab] = useState('Resume')
+  const [toast, setToast] = useState(null)
 
   const isMyProfile = employeeId === 'me' || !employeeId
   const profile = useMemo(() => {
@@ -53,6 +54,8 @@ export default function EmployeeProfile() {
   const canViewSalaryNow = canViewSalary(role)
   const canEditSalaryNow = !viewOnlyFromNav && canEditSalary(role)
   const canEditAvatarNow = !viewOnlyFromNav && canEditAvatar(role)
+  // Security actions are gated inside the SecurityForm (Admin / HR Officer).
+  // Keep this variable for future extension if we add more security actions here.
   const canAdminSecurity = !viewOnlyFromNav && canAdministerSecurity(role)
 
   const patch = (updater) => {
@@ -172,10 +175,41 @@ export default function EmployeeProfile() {
 
         {activeTab === 'Security' ? (
           <div className="mt-5">
-            <SecurityForm role={canAdminSecurity ? 'Admin' : role} isMyProfile={isMyProfile} />
+            <SecurityForm
+              role={role}
+              isMyProfile={isMyProfile}
+              employeeId={profile.id}
+              employeeName={profile.name}
+                joiningDate={profile.joiningDate}
+              initialEmail={profile.email}
+              initialLoginId={profile.loginId}
+              credentialsSent={profile.credentialsSent === true}
+              onCredentialsSent={({ loginId, email }) => {
+                patch((p) => ({
+                  ...p,
+                  email: email ?? p.email,
+                  loginId: loginId ?? p.loginId,
+                  credentialsSent: true,
+                }))
+              }}
+              onToast={(t) => setToast(t)}
+            />
           </div>
         ) : null}
       </div>
+
+      {toast ? (
+        <div
+          className={`fixed bottom-6 right-6 z-[500] rounded-xl border px-5 py-3 text-sm font-medium shadow-2xl shadow-black/50 ring-1 ring-white/10 ${
+            toast.type === 'success'
+              ? 'border-emerald-500/40 bg-[#111827] text-emerald-200'
+              : 'border-red-500/40 bg-[#111827] text-red-200'
+          }`}
+          role="status"
+        >
+          {toast.message}
+        </div>
+      ) : null}
     </div>
   )
 }

@@ -9,7 +9,9 @@ function AttendanceWidget() {
   const checkedIn = attendance.status === 'in'
   return (
     <div className="flex items-center gap-3 rounded-xl border border-gray-800 bg-[#111827] px-3 py-2">
-      <span className={`h-2.5 w-2.5 rounded-full ${checkedIn ? 'bg-emerald-500' : 'bg-red-500'}`} />
+      <span
+        className={`h-4 w-4 rounded-full ${checkedIn ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.6)]' : 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]'}`}
+      />
       <button
         type="button"
         onClick={checkedIn ? checkOut : checkIn}

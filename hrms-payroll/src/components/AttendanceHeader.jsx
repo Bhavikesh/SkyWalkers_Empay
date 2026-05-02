@@ -19,7 +19,7 @@ function CheckInWidget() {
     <div className="flex w-full min-w-[220px] max-w-sm flex-col gap-3 rounded-lg border border-gray-800 bg-[#111827] p-4 lg:max-w-[260px]">
       <div className="flex items-start gap-3">
         <span
-          className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${isIn ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.7)]' : 'bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.5)]'}`}
+          className={`mt-0.5 h-8 w-8 shrink-0 rounded-full ${isIn ? 'bg-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.8)]' : 'bg-red-400 shadow-[0_0_14px_rgba(248,113,113,0.6)]'}`}
           aria-hidden
         />
         <div className="min-w-0 flex-1">

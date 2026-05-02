@@ -23,7 +23,7 @@ export function AttendanceControl() {
       <div className="flex w-full min-w-0 items-center justify-between gap-6">
         <div className="flex min-w-0 items-center gap-4">
           <span
-            className={`h-3 w-3 shrink-0 rounded-full ${checkedIn ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]' : 'bg-red-500'}`}
+            className={`h-8 w-8 shrink-0 rounded-full ${checkedIn ? 'bg-emerald-500 shadow-[0_0_16px_rgba(16,185,129,0.7)]' : 'bg-red-500 shadow-[0_0_14px_rgba(239,68,68,0.55)]'}`}
             title={checkedIn ? 'Checked in' : 'Not checked in'}
             aria-hidden
           />
