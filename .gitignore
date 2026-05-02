@@ -2,6 +2,10 @@
 
 # dependencies
 /node_modules
+hrms-payroll/node_modules
+hrms-payroll/dist
+hrms-payroll/dist-ssr
+
 /.pnp
 .pnp.*
 .yarn/*
