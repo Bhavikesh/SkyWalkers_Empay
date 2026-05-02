@@ -5,7 +5,7 @@ const UserAttendanceContext = createContext(null)
 const defaultUser = {
   name: 'Admin K.',
   email: 'admin.k@company.com',
-  role: 'Payroll Ops',
+  role: 'HR Admin',
   department: 'Human Resources',
   bankDetails: 'HDFC • XX42 (Savings)',
   pan: 'ABCDE1234F',

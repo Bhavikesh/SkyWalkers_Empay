@@ -17,10 +17,18 @@ export function Table({ columns, children }) {
   )
 }
 
-export function TableRow({ children }) {
-  return <tr className="border-b border-gray-800/80 last:border-b-0">{children}</tr>
+export function TableRow({ children, className = '', ...props }) {
+  return (
+    <tr className={`border-b border-gray-800/80 last:border-b-0 ${className}`.trim()} {...props}>
+      {children}
+    </tr>
+  )
 }
 
-export function TableCell({ children, className = '' }) {
-  return <td className={`px-4 py-2 align-middle ${className}`.trim()}>{children}</td>
+export function TableCell({ children, className = '', ...props }) {
+  return (
+    <td className={`px-4 py-2 align-middle ${className}`.trim()} {...props}>
+      {children}
+    </td>
+  )
 }

@@ -2,7 +2,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
 import { Table, TableCell, TableRow } from '../components/Table'
-import { getEmployees, getPayrollData } from '../services/mockApi'
+import {
+  ALL_KEY,
+  aggregateMonthsForYear,
+  defaultEmployee,
+  defaultYear,
+  fetchReportData,
+  yearOptions,
+} from '../services/mockReports'
 
 function formatInr(n) {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n)
@@ -12,26 +19,23 @@ const columns = [
   { key: 'month', label: 'Month' },
   { key: 'gross', label: 'Gross' },
   { key: 'net', label: 'Net' },
-  { key: 'employerCost', label: 'Employer cost' },
+  { key: 'cost', label: 'Employer cost' },
 ]
 
-const years = ['2024', '2025', '2026']
-
 export default function Reports() {
-  const [employees, setEmployees] = useState([])
-  const [reportRows, setReportRows] = useState([])
-  const [employeeId, setEmployeeId] = useState('all')
-  const [year, setYear] = useState('2025')
+  const [reportSource, setReportSource] = useState([])
   const [loading, setLoading] = useState(true)
+  const [selectedEmployee, setSelectedEmployee] = useState(defaultEmployee)
+  const [selectedYear, setSelectedYear] = useState(String(defaultYear))
+  const [filteredData, setFilteredData] = useState([])
 
   useEffect(() => {
     let cancelled = false
     ;(async () => {
       setLoading(true)
-      const [e, p] = await Promise.all([getEmployees(), getPayrollData()])
+      const data = await fetchReportData()
       if (!cancelled) {
-        setEmployees(e)
-        setReportRows(p.reportRows)
+        setReportSource(data)
         setLoading(false)
       }
     })()
@@ -40,22 +44,37 @@ export default function Reports() {
     }
   }, [])
 
-  const filteredRows = useMemo(() => {
-    return reportRows.map((r) => ({
-      ...r,
-      gross: r.gross + (employeeId === 'all' ? 0 : year === '2025' ? 1200 : 800),
-      net: r.net + (employeeId === 'all' ? 0 : year === '2025' ? 900 : 600),
-      employerCost: r.employerCost + (employeeId === 'all' ? 0 : year === '2025' ? 1500 : 1000),
-    }))
-  }, [reportRows, employeeId, year])
+  useEffect(() => {
+    if (!reportSource.length) {
+      setFilteredData([])
+      return
+    }
+
+    const yearNum = Number(selectedYear)
+
+    if (selectedEmployee === ALL_KEY) {
+      setFilteredData(aggregateMonthsForYear(yearNum, reportSource))
+      return
+    }
+
+    const match = reportSource.find(
+      (r) => r.employee === selectedEmployee && r.year === yearNum,
+    )
+    setFilteredData(match?.months ?? [])
+  }, [selectedEmployee, selectedYear, reportSource])
+
+  const employeeOptions = useMemo(() => {
+    const names = [...new Set(reportSource.map((r) => r.employee))].sort()
+    return names
+  }, [reportSource])
 
   const handlePrint = () => window.print()
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 transition-opacity duration-200 print:opacity-100">
       <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between print:hidden">
         <h1 className="text-xl font-semibold text-white">Reports</h1>
-        <Button variant="secondary" onClick={handlePrint} disabled={loading}>
+        <Button variant="secondary" onClick={handlePrint} disabled={loading || !filteredData.length}>
           Print
         </Button>
       </div>
@@ -66,15 +85,15 @@ export default function Reports() {
           <label className="flex flex-col gap-4">
             <span className="text-sm text-gray-400">Employee</span>
             <select
-              className="rounded-xl border border-gray-800 bg-slate-900 px-4 py-2 text-base text-white focus:border-violet-500 focus:outline-none"
-              value={employeeId}
-              onChange={(e) => setEmployeeId(e.target.value)}
+              className="rounded-xl border border-gray-800 bg-slate-900 px-4 py-2 text-base text-white transition-colors focus:border-violet-500 focus:outline-none"
+              value={selectedEmployee}
+              onChange={(e) => setSelectedEmployee(e.target.value)}
               disabled={loading}
             >
-              <option value="all">All employees</option>
-              {employees.map((emp) => (
-                <option key={emp.id} value={emp.id}>
-                  {emp.name}
+              <option value={ALL_KEY}>All employees</option>
+              {employeeOptions.map((name) => (
+                <option key={name} value={name}>
+                  {name}
                 </option>
               ))}
             </select>
@@ -82,13 +101,13 @@ export default function Reports() {
           <label className="flex flex-col gap-4">
             <span className="text-sm text-gray-400">Year</span>
             <select
-              className="rounded-xl border border-gray-800 bg-slate-900 px-4 py-2 text-base text-white focus:border-violet-500 focus:outline-none"
-              value={year}
-              onChange={(e) => setYear(e.target.value)}
+              className="rounded-xl border border-gray-800 bg-slate-900 px-4 py-2 text-base text-white transition-colors focus:border-violet-500 focus:outline-none"
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
               disabled={loading}
             >
-              {years.map((y) => (
-                <option key={y} value={y}>
+              {yearOptions.map((y) => (
+                <option key={y} value={String(y)}>
                   {y}
                 </option>
               ))}
@@ -97,21 +116,28 @@ export default function Reports() {
         </div>
       </Card>
 
-      <section className="flex flex-col gap-6">
+      <section
+        className={`flex flex-col gap-6 ${loading ? 'opacity-60' : 'opacity-100'} transition-opacity duration-200`}
+      >
         <div className="flex items-center justify-between gap-4">
           <h2 className="text-lg font-medium text-white">Monthly breakdown</h2>
-          <span className="text-sm text-gray-400">{year}</span>
+          <span className="text-sm text-gray-400">
+            {selectedEmployee === ALL_KEY ? 'All employees' : selectedEmployee} · {selectedYear}
+          </span>
         </div>
+
         {loading ? (
           <p className="text-sm text-gray-400">Loading report…</p>
+        ) : filteredData.length === 0 ? (
+          <p className="rounded-2xl border border-gray-800 bg-[#0f172a] p-5 text-sm text-gray-400">No data available</p>
         ) : (
           <Table columns={columns}>
-            {filteredRows.map((r) => (
-              <TableRow key={r.month}>
-                <TableCell>{r.month}</TableCell>
-                <TableCell>{formatInr(r.gross)}</TableCell>
-                <TableCell>{formatInr(r.net)}</TableCell>
-                <TableCell>{formatInr(r.employerCost)}</TableCell>
+            {filteredData.map((row) => (
+              <TableRow key={row.month}>
+                <TableCell>{row.month}</TableCell>
+                <TableCell>{formatInr(row.gross)}</TableCell>
+                <TableCell>{formatInr(row.net)}</TableCell>
+                <TableCell>{formatInr(row.cost)}</TableCell>
               </TableRow>
             ))}
           </Table>
