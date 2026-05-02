@@ -1,35 +1,45 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
-import Sidebar from './components/layout/Sidebar'
-import Header from './components/layout/Header'
-import EmployeesPage from './pages/EmployeesPage'
-import AttendancePage from './pages/AttendancePage'
-import TimeOffPage from './pages/TimeOffPage'
-import PayrollPage from './pages/PayrollPage'
-import ReportsPage from './pages/ReportsPage'
-import SettingsPage from './pages/SettingsPage'
-import LeaveManagementPage from './pages/LeaveManagementPage'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { Layout } from './components/Layout'
+import { EmployeeProvider } from './context/EmployeeContext'
+import { PayrollProvider } from './context/PayrollContext'
+import { UserAttendanceProvider } from './context/UserAttendanceContext'
+import Employees from './pages/Employees'
+import EmployeeProfile from './pages/EmployeeProfile'
+import Attendance from './pages/Attendance'
+import Dashboard from './pages/Dashboard'
+import PayrollDashboard from './pages/PayrollDashboard'
+import Payrun from './pages/Payrun'
+import Payslip from './pages/Payslip'
+import Reports from './pages/Reports'
+import TimeOff from './pages/TimeOff'
+import Settings from './pages/Settings'
 
 export default function App() {
   return (
-    <div className="flex h-screen bg-[#0f1117] overflow-hidden">
-      <Sidebar />
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-y-auto p-6">
-          <Routes>
-            <Route path="/" element={<Navigate to="/employees" replace />} />
-            <Route path="/employees" element={<EmployeesPage />} />
-            <Route path="/attendance" element={<AttendancePage />} />
-            {/* /timeoff alias → same page as /time-off */}
-            <Route path="/timeoff"    element={<Navigate to="/time-off" replace />} />
-            <Route path="/time-off"   element={<TimeOffPage />} />
-            <Route path="/payroll" element={<PayrollPage />} />
-            <Route path="/reports" element={<ReportsPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/leave-management" element={<LeaveManagementPage />} />
-          </Routes>
-        </main>
-      </div>
-    </div>
+    <UserAttendanceProvider>
+      <EmployeeProvider>
+        <PayrollProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route element={<Layout />}>
+                <Route path="/" element={<Navigate to="/employees" replace />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/profile" element={<Navigate to="/employees/me" replace />} />
+                <Route path="/employees" element={<Employees />} />
+                <Route path="/employees/me" element={<EmployeeProfile />} />
+                <Route path="/employees/:employeeId" element={<EmployeeProfile />} />
+                <Route path="/attendance" element={<Attendance />} />
+                <Route path="/time-off" element={<TimeOff />} />
+                <Route path="/payroll" element={<PayrollDashboard />} />
+                <Route path="/payrun" element={<Payrun />} />
+                <Route path="/payslip" element={<Payslip />} />
+                <Route path="/reports" element={<Reports />} />
+                <Route path="/settings" element={<Settings />} />
+              </Route>
+            </Routes>
+          </BrowserRouter>
+        </PayrollProvider>
+      </EmployeeProvider>
+    </UserAttendanceProvider>
   )
 }
