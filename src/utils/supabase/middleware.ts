@@ -55,7 +55,7 @@ export async function updateSession(request: NextRequest) {
       .eq('id', user.id)
       .single()
       
-    const perms = profile?.roles || {}
+    const perms = (profile?.roles as unknown as { can_manage_users: boolean, can_manage_leaves: boolean, can_process_payroll: boolean }) || {}
     const path = request.nextUrl.pathname
 
     // Onboarding Redirect

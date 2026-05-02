@@ -3,6 +3,9 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
+import { Resend } from 'resend'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function createUser(formData: FormData) {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -31,7 +34,7 @@ export async function createUser(formData: FormData) {
     
   if (!adminProfile) return { error: 'Could not resolve your company context.' }
   const companyId = adminProfile.company_id
-  const companyCode = adminProfile.companies?.code || 'XX'
+  const companyCode = (adminProfile.companies as unknown as { code: string })?.code || 'XX'
 
   // 2. Admin client to bypass RLS for user creation
   const supabaseAdmin = createServerClient(
@@ -43,7 +46,6 @@ export async function createUser(formData: FormData) {
   const email = formData.get('email') as string
   const firstName = formData.get('first_name') as string
   const lastName = formData.get('last_name') as string
-  const department = formData.get('department') as string
   const roleName = formData.get('role') as string
 
   // Generate Login ID: [CompanyCode][First2Last2][Year][0001]
@@ -99,6 +101,48 @@ export async function createUser(formData: FormData) {
       entity: 'profiles',
       entity_id: authData.user.id
     })
+
+    // Send Welcome Email via Resend
+    if (process.env.RESEND_API_KEY) {
+      try {
+        const { data, error } = await resend.emails.send({
+          from: 'EmPay Technologies <onboarding@resend.dev>',
+          to: email,
+          subject: 'Welcome to EmPay HRMS - Your Login Credentials',
+          html: `
+            <div style="font-family: sans-serif; max-w: 600px; margin: 0 auto; border: 1px solid #eaeaea; border-radius: 8px; overflow: hidden;">
+              <div style="background-color: #7c3aed; padding: 24px; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 24px;">Welcome to EmPay HRMS</h1>
+              </div>
+              <div style="padding: 32px; background-color: #ffffff; color: #333;">
+                <p style="font-size: 16px; margin-top: 0;">Hi ${firstName},</p>
+                <p style="font-size: 16px;">Your EmPay HRMS account has been created by your administrator. You can now log into the portal to access your dashboard, leaves, and attendance.</p>
+                
+                <div style="background-color: #f3f4f6; padding: 20px; border-radius: 6px; margin: 24px 0;">
+                  <p style="margin: 0 0 10px 0; font-size: 14px; color: #666; text-transform: uppercase; letter-spacing: 0.05em;">Your Login Credentials</p>
+                  <p style="margin: 0 0 8px 0; font-size: 16px;"><strong>Login ID:</strong> <code style="background: #e5e7eb; padding: 2px 6px; border-radius: 4px;">${loginId}</code></p>
+                  <p style="margin: 0; font-size: 16px;"><strong>Password:</strong> <code style="background: #e5e7eb; padding: 2px 6px; border-radius: 4px;">${password}</code></p>
+                </div>
+                
+                <p style="font-size: 14px; color: #666;">For security reasons, we strongly recommend changing your password after your first login.</p>
+                
+                <div style="text-align: center; margin-top: 32px;">
+                  <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/login" style="background-color: #7c3aed; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; display: inline-block;">Go to Login Portal</a>
+                </div>
+              </div>
+            </div>
+          `
+        })
+
+        if (error) {
+          console.error('Resend Error:', error)
+        } else {
+          console.log('Email sent successfully:', data?.id)
+        }
+      } catch (err) {
+        console.error('Failed to send email:', err)
+      }
+    }
   }
 
   revalidatePath('/admin/create-employee')

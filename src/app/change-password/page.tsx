@@ -1,5 +1,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
+import { Resend } from 'resend'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 export default async function ChangePasswordPage() {
   const supabase = await createClient()
@@ -16,6 +19,30 @@ export default async function ChangePasswordPage() {
     // Update is_first_login flag in profile
     if (user) {
       await supabaseServer.from('profiles').update({ is_first_login: false }).eq('id', user.id)
+
+      // Send Password Change Confirmation Email via Resend
+      if (process.env.RESEND_API_KEY && user.email) {
+        await resend.emails.send({
+          from: 'EmPay Security <security@resend.dev>',
+          to: user.email,
+          subject: 'Your EmPay Password Has Been Changed',
+          html: `
+            <div style="font-family: sans-serif; max-w: 600px; margin: 0 auto; border: 1px solid #eaeaea; border-radius: 8px; overflow: hidden;">
+              <div style="background-color: #10b981; padding: 24px; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 24px;">Security Alert</h1>
+              </div>
+              <div style="padding: 32px; background-color: #ffffff; color: #333;">
+                <p style="font-size: 16px; margin-top: 0;">Hello,</p>
+                <p style="font-size: 16px;">This email is to confirm that the password for your EmPay HRMS account was recently changed.</p>
+                <p style="font-size: 16px;">If you made this change, you can safely ignore this email.</p>
+                <div style="background-color: #fef2f2; border: 1px solid #fecaca; padding: 16px; border-radius: 6px; margin: 24px 0;">
+                  <p style="margin: 0; font-size: 14px; color: #991b1b;"><strong>Didn't make this change?</strong> Please contact your HR administrator immediately to secure your account.</p>
+                </div>
+              </div>
+            </div>
+          `
+        })
+      }
     }
 
     redirect('/dashboard')

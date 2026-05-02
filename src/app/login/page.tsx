@@ -1,52 +1,136 @@
 import { login } from './actions'
 import Link from 'next/link'
+import Image from 'next/image'
+import { AtSign, Lock, Eye } from 'lucide-react'
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ message?: string }> }) {
   const params = await searchParams
 
   return (
-    <div className="flex-1 flex flex-col w-full px-8 sm:max-w-md justify-center gap-2 h-screen mx-auto">
-      <div className="flex flex-col mb-8 text-center">
-        <h1 className="text-3xl font-bold mb-2 text-blue-600">EmPay HRMS</h1>
-        <p className="text-gray-500">Sign in to your account</p>
+    <div className="min-h-screen w-full flex bg-[#050505] text-white">
+      
+      {/* LEFT COLUMN: Graphic and Copy */}
+      <div className="hidden lg:flex flex-col justify-between w-1/2 p-12 relative overflow-hidden bg-black">
+        <div className="z-10 relative">
+          <h1 className="text-2xl font-bold tracking-tight">EmPay</h1>
+        </div>
+        
+        {/* Abstract 3D Image */}
+        <div className="absolute inset-0 flex items-center justify-center top-[-10%] opacity-90 mix-blend-screen">
+          <Image 
+            src="/login-bg.png" 
+            alt="3D Abstract glowing ribbon" 
+            width={800} 
+            height={800} 
+            className="object-cover scale-110"
+            priority
+          />
+        </div>
+
+        <div className="z-10 relative mt-auto max-w-md">
+          <h2 className="text-4xl font-bold tracking-tight mb-4">
+            Elevate your human resource capital.
+          </h2>
+          <p className="text-gray-400 text-lg leading-relaxed">
+            Experience the fusion of minimalist precision and powerful payroll automation in one unified ecosystem.
+          </p>
+        </div>
       </div>
 
-      <form className="animate-in flex-1 flex flex-col w-full justify-center gap-2 text-foreground">
-        <label className="text-md font-semibold" htmlFor="login_id">
-          Login Id / Email :-
-        </label>
-        <input
-          className="rounded-md px-4 py-2 bg-inherit border mb-6"
-          name="login_id"
-          placeholder="OIJODO20240001 or you@example.com"
-          required
-        />
-        <label className="text-md" htmlFor="password">
-          Password
-        </label>
-        <input
-          className="rounded-md px-4 py-2 bg-inherit border mb-6"
-          type="password"
-          name="password"
-          placeholder="••••••••"
-          required
-        />
-        <button
-          formAction={login}
-          className="bg-blue-600 rounded-md px-4 py-2 text-white mb-2 transition-colors hover:bg-blue-700"
-        >
-          Sign In
-        </button>
-        {params?.message && (
-          <p className="mt-4 p-4 bg-red-100 text-red-600 text-center rounded-md">
-            {params.message}
-          </p>
-        )}
+      {/* RIGHT COLUMN: Login Form */}
+      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-8 bg-[#0a0a0a]">
+        <div className="w-full max-w-md">
+          
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold tracking-tight mb-2">Welcome Back</h2>
+            <p className="text-gray-400 text-sm">Enter your credentials to access your EmPay dashboard.</p>
+          </div>
 
-        <p className="text-center text-sm text-gray-500 mt-4">
-          New company? <Link href="/register" className="text-blue-600 hover:underline">Register here</Link>
-        </p>
-      </form>
+          <form className="flex flex-col gap-4">
+            
+            {/* Email / Login ID */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-gray-400" htmlFor="login_id">Email/Login ID</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <AtSign size={16} className="text-gray-500" />
+                </div>
+                <input
+                  className="w-full rounded-lg pl-10 pr-4 py-3 bg-[#141414] border border-[#222] focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder:text-gray-600 text-sm"
+                  name="login_id"
+                  placeholder="name@company.com"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-gray-400" htmlFor="password">Password</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock size={16} className="text-gray-500" />
+                </div>
+                <input
+                  className="w-full rounded-lg pl-10 pr-10 py-3 bg-[#141414] border border-[#222] focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder:text-gray-600 text-sm"
+                  type="password"
+                  name="password"
+                  placeholder="••••••••"
+                  required
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer text-gray-500 hover:text-gray-300">
+                  <Eye size={16} />
+                </div>
+              </div>
+            </div>
+
+            {/* Remember Me & Forgot Password */}
+            <div className="flex items-center justify-between mt-1 mb-2">
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="remember" className="rounded bg-[#141414] border-[#222] text-blue-600 focus:ring-blue-500/50" />
+                <label htmlFor="remember" className="text-xs text-gray-400 cursor-pointer">Remember me</label>
+              </div>
+              <a href="#" className="text-xs text-blue-500 hover:text-blue-400 transition-colors font-medium">Forgot Password?</a>
+            </div>
+
+            {/* Error Message */}
+            {params?.message && (
+              <p className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center rounded-lg">
+                {params.message}
+              </p>
+            )}
+
+            {/* Submit Button */}
+            <button
+              formAction={login}
+              className="w-full bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 rounded-lg py-3 text-white text-sm font-semibold shadow-lg shadow-blue-900/20 transition-all hover:scale-[1.02]"
+            >
+              Sign In
+            </button>
+
+            {/* Divider */}
+            <div className="flex items-center my-4">
+              <div className="flex-1 border-t border-[#222]"></div>
+              <span className="px-3 text-[10px] uppercase tracking-wider text-gray-600 font-medium">Or continue with SSO</span>
+              <div className="flex-1 border-t border-[#222]"></div>
+            </div>
+
+            {/* SSO Buttons */}
+            <div className="grid grid-cols-2 gap-3">
+              <button type="button" className="flex items-center justify-center gap-2 py-2.5 rounded-lg border border-[#222] bg-[#0f0f0f] hover:bg-[#1a1a1a] transition-colors text-sm text-gray-300">
+                Google
+              </button>
+              <button type="button" className="flex items-center justify-center gap-2 py-2.5 rounded-lg border border-[#222] bg-[#0f0f0f] hover:bg-[#1a1a1a] transition-colors text-sm text-gray-300">
+                Microsoft
+              </button>
+            </div>
+
+            <p className="text-center text-sm text-gray-500 mt-6">
+              Don&apos;t have an account? <Link href="/register" className="text-violet-400 hover:text-violet-300 font-medium transition-colors">Sign Up</Link>
+            </p>
+          </form>
+        </div>
+      </div>
     </div>
   )
 }
