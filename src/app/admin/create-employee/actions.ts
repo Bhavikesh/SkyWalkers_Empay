@@ -49,7 +49,8 @@ export async function createUser(formData: FormData) {
   // In a real app, you'd calculate the next serial based on existing users.
   const initials = (firstName.substring(0, 2) + lastName.substring(0, 2)).toUpperCase()
   const year = new Date().getFullYear()
-  const loginId = `${companyCode.toUpperCase()}${initials}${year}0001`
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000).toString()
+  const loginId = `${companyCode.toUpperCase()}${initials}${year}${randomSuffix}`
   
   // Generate random password
   const password = Math.random().toString(36).slice(-8) + 'A1!'
@@ -88,7 +89,11 @@ export async function createUser(formData: FormData) {
         email: email
       })
 
-    if (profileError) return { error: profileError.message }
+    if (profileError) {
+      // Rollback Auth user creation to avoid orphaned accounts blocking the email
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
+      return { error: `Profile creation failed: ${profileError.message}` }
+    }
     
     // Create Audit Log
     await supabaseAdmin.from('audit_logs').insert({
@@ -105,6 +110,7 @@ export async function createUser(formData: FormData) {
         service_id: 'service_foyth57',
         template_id: 'template_6kgypei',
         user_id: 'N-sHjBFeFUVQiQMuh',
+        accessToken: '98E_q_FlI_Pcn7_XTeNA-',
         template_params: {
           email: email,
           login_id: loginId,
