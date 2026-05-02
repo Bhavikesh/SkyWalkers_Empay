@@ -1,0 +1,109 @@
+EmPay – Smart Human Resource Management System 
+EmPay – Simplifying HR & Payroll Operations for Smarter Workplaces 
+EmPay aims to modernize and simplify how organizations manage people, 
+processes, and payroll through a comprehensive, all-in-one Human Resource 
+Management System (HRMS). The platform is designed to provide a clean, 
+reliable, and user-friendly experience for both employees and 
+administrators—enabling seamless collaboration in managing attendance, leave, 
+payroll, and analytics from a unified interface. By focusing on robust, scalable, and 
+thoughtfully engineered solutions, EmPay strives to reduce manual dependency, 
+improve transparency, and empower organizations—especially startups, 
+institutions, and SMEs—to make informed, data-driven workforce decisions. 
+Develop a working system, focusing on the following modules and flows: 
+User & Role Management 
+User registration and login functionality. 
+Role-based access (Employee / HR Officer/ Admin / Payroll Officer). 
+Editable profile management. 
+Attendance & Leave Management 
+Employees can mark attendance and view their daily/monthly logs. 
+Leave application, approval, and rejection workflows. 
+Payroll Management 
+Basic payroll module showing salary breakdown, deductions, and payout 
+summary. 
+Option for Admin/Payroll Officer to generate or edit monthly reports and 
+payslips. 
+Dashboard & Analytics 
+ Display of attendance, leaves, and payroll metrics through charts or 
+summaries. 
+ Admin overview of employee data and overall HR statistics. 
+The Challenge
+Vision & Mission
+Problem Statement
+
+
+1. Admin 
+Register on the portal and manage user accounts. 
+Create, read, update, and delete data across all modules. 
+Manage user roles in settings. 
+Oversee all activities and ensure smooth system operations. 
+No access limitations. 
+ 
+2. Employee 
+Apply for time off and see time off status. 
+View personal attendance and performance records. 
+Can access the employee directory and view individual records but 
+cannot modify them. 
+Cannot access settings, payroll, reports, salary info. 
+3. HR Officer 
+Create and update employee profiles and details. 
+Monitor attendance records of all employees. 
+Manage & Allocate new leaves to employees. 
+Cannot access payroll data or access system settings. 
+4. Payroll Officer 
+ Approve or reject time-off requests. 
+ Generate payslip and leave reports. 
+ Cannot create or modify employee data or access system settings, except 
+for managing salary-related information. 
+Manage Payroll, Time Off and Reports. 
+ Can access attendance. 
+ 
+1. Payroll 
+The process of calculating and distributing employee salaries, wages, bonuses, 
+and deductions. All payroll-related calculations are based on employee 
+attendance records for the given pay period. 
+2. Payrun 
+A specific payroll cycle or period during which salaries are processed and 
+paid to employees. The payrun amount is calculated based on attendance, 
+approved leaves, and applicable deductions. 
+Roles & Responsibilities
+Terminologies
+ 
+ 
+ 
+ 
+ 
+ 
+
+
+3. Payslip 
+An official document provided to an employee for each payrun, showing a 
+detailed breakdown of earnings, deductions, and net pay. Payslips are 
+automatically generated once payroll is processed. 
+4. Time-Off 
+A period during which an employee is officially permitted to be absent from 
+work (such as vacation, sick leave, or personal leave). Approved time-offs 
+are factored into payroll calculations. 
+5. Wage 
+The monetary compensation paid to an employee for their work during a 
+specific period. Wages are calculated based on attendance, working 
+hours, and approved leaves. 
+6. Provident Fund (PF) Contribution 
+A retirement benefit scheme in which both the employee and employer 
+contribute a fixed percentage (commonly 12%) of the employeeʼs basic 
+salary every month. PF is calculated based on the basic salary and serves 
+as long-term savings for the employee. 
+7. Professional Tax 
+A small monthly tax levied by the state government on individuals earning income 
+through employment or profession. It is deducted directly from the gross salary as 
+part of monthly payroll processing. 
+ Source code hosted on Git repository (with meaningful commits) 
+Why is this Hackathon Problem Important? 
+ Students will learn real-world ERP workflows. 
+ Understand how modules talk to each other for Eg (Employees → 
+Attendance → Payroll). 
+ Practice problem-solving using business logic, not just coding. 
+ 
+Mockup:- https://link.excalidraw.com/l/65VNwvy7c4X/7gxoB8JymIS 
+ 
+Deliverables
+
