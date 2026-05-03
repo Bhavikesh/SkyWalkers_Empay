@@ -1,13 +1,13 @@
 import { createContext, useCallback, useContext, useMemo, useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase } from '../utils/supabaseClient'
 
 const UserAttendanceContext = createContext(null)
 
 const defaultUser = {
   id: 'eb11abdb-9d57-4c7d-a6c4-a2c7e22b466e', // One of our test employees
-  name: 'Payroll Admin',
-  email: 'payroll.admin@company.com',
-  role: 'Payroll Officer',
+  name: 'HR Admin',
+  email: 'hr.admin@company.com',
+  role: 'HR Manager',
   department: 'Human Resources',
   bankDetails: 'HDFC ?" XX42 (Savings)',
   pan: 'ABCDE1234F',

@@ -467,22 +467,6 @@ export default function LeaveManagementPage() {
         </div>
       </div>
 
-      {/* Temporary Debug UI */}
-      <div className="mt-8 rounded-2xl bg-[#13161f] border border-dashed border-indigo-500/50 overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-800/60 bg-indigo-500/10">
-          <h3 className="font-semibold text-indigo-400 flex items-center gap-2">
-            <ClipboardList size={16} />
-            Leave Management Connection Debug
-          </h3>
-        </div>
-        <div className="p-6 overflow-auto max-h-96 text-xs text-slate-300 font-mono bg-slate-900">
-          <div>
-            <strong className="text-emerald-400">DATA SUCCESSFULLY FETCHED:</strong><br />
-            <div className="mt-2 text-indigo-300">requests (mapped):</div>
-            {JSON.stringify(requests, null, 2)}
-          </div>
-        </div>
-      </div>
     </div>
   )
 }

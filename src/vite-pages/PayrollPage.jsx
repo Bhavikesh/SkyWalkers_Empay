@@ -57,6 +57,17 @@ export default function PayrollPage() {
 
   return (
     <div>
+      {/* Page header */}
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-9 h-9 rounded-xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center">
+          <DollarSign size={18} className="text-violet-400" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-100 leading-tight">Payroll</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Monthly salary processing and disbursements</p>
+        </div>
+      </div>
+
       {/* ── Stat Cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard icon={DollarSign}  label="Total Payroll"  value={fmt(totalNet)}   trend="+4.2% vs last month" trendUp color="emerald" />

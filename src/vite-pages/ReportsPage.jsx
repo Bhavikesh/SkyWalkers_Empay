@@ -40,6 +40,17 @@ export default function ReportsPage() {
 
   return (
     <div>
+      {/* Page header */}
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-9 h-9 rounded-xl bg-sky-600/10 border border-sky-500/20 flex items-center justify-center">
+          <BarChart2 size={18} className="text-sky-400" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-100 leading-tight">Reports</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Department summaries, hiring trends, and attendance analytics</p>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard icon={Users}      label="Headcount"       value={loading ? '-' : totalHeadcount} trend="+12 this month" trendUp color="indigo"  />
         <StatCard icon={TrendingUp} label="Turnover Rate"   value="4.8%"      trend="-0.5% vs Q1"    trendUp color="emerald" />

@@ -1,15 +1,21 @@
 import { NavLink } from 'react-router-dom'
-import { Card } from './Card'
+import {
+  LayoutDashboard,
+  Users,
+  CalendarCheck,
+  ClipboardList,
+  DollarSign,
+  BarChart2,
+} from 'lucide-react'
 import { useUserAttendance } from '../context/UserAttendanceContext'
 
 const navItems = [
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/employees', label: 'Employees' },
-  { to: '/attendance', label: 'Attendance' },
-  { to: '/time-off', label: 'Time Off' },
-  { to: '/payroll', label: 'Payroll' },
-  { to: '/reports', label: 'Reports' },
-  { to: '/settings', label: 'Settings' },
+  { to: '/dashboard',         label: 'Dashboard',        icon: LayoutDashboard },
+  { to: '/employees',         label: 'Employees',        icon: Users },
+  { to: '/attendance',        label: 'Attendance',       icon: CalendarCheck },
+  { to: '/leave-management',  label: 'Leave Management', icon: ClipboardList },
+  { to: '/payroll',           label: 'Payroll',          icon: DollarSign },
+  { to: '/reports',           label: 'Reports',          icon: BarChart2 },
 ]
 
 function initials(name) {
@@ -24,39 +30,53 @@ function initials(name) {
 
 const linkClass = ({ isActive }) =>
   [
-    'flex w-full items-center rounded-xl px-4 py-3 text-sm font-medium transition-colors',
-    isActive ? 'bg-violet-600/20 text-violet-300' : 'text-gray-400 hover:bg-slate-800/80 hover:text-white',
+    'flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-150',
+    isActive
+      ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 shadow-sm shadow-indigo-900/30'
+      : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200',
   ].join(' ')
 
 export function Sidebar() {
   const { user } = useUserAttendance()
 
   return (
-    <aside className="fixed left-0 top-0 flex h-screen w-64 flex-col gap-8 border-r border-gray-800 bg-[#0b1220] px-4 py-6 print:hidden">
-      <div className="px-2">
-        <p className="text-lg font-semibold tracking-tight text-white">HRMS Payroll</p>
-        <p className="text-sm text-gray-500">Suite</p>
+    <aside className="fixed left-0 top-0 flex h-screen w-64 flex-col gap-6 border-r border-slate-800/70 bg-[#0b0f1c] px-4 py-6 print:hidden">
+      {/* Brand */}
+      <div className="flex items-center gap-3 px-2 mb-2">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shrink-0">
+          <span className="text-white text-xs font-bold">HR</span>
+        </div>
+        <div>
+          <p className="text-sm font-bold tracking-tight text-white leading-tight">EmPay HRMS</p>
+          <p className="text-[10px] text-slate-500 leading-tight">Human Resource Suite</p>
+        </div>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-4">
-        {navItems.map((item) => (
-          <NavLink key={item.to} to={item.to} className={linkClass}>
-            {item.label}
+      {/* Nav label */}
+      <div className="px-2">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Navigation</p>
+      </div>
+
+      {/* Nav items */}
+      <nav className="flex flex-1 flex-col gap-1">
+        {navItems.map(({ to, label, icon: Icon }) => (
+          <NavLink key={to} to={to} className={linkClass}>
+            <Icon size={16} className="shrink-0" />
+            {label}
           </NavLink>
         ))}
       </nav>
 
-      <Card>
-        <div className="flex items-center gap-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-600 text-sm font-semibold text-white">
-            {initials(user.name)}
-          </div>
-          <div className="min-w-0 flex-1 text-left">
-            <p className="truncate text-base text-white">{user.name}</p>
-            <p className="truncate text-sm text-gray-400">{user.role}</p>
-          </div>
+      {/* User card */}
+      <div className="rounded-xl border border-slate-800/60 bg-slate-900/50 p-3 flex items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-xs font-bold text-white shadow-lg">
+          {initials(user?.name || 'HR')}
         </div>
-      </Card>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-slate-200">{user?.name || 'HR Manager'}</p>
+          <p className="truncate text-xs text-slate-500">{user?.role || 'Human Resources'}</p>
+        </div>
+      </div>
     </aside>
   )
 }

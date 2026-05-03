@@ -6,7 +6,7 @@ import { supabase } from '../utils/supabaseClient'
 import { RiskBadge } from '../components/ui/Badge'
 import { buildLeaveCounts, getRiskLevel } from '../utils/burnout'
 
-// Removed static RECORDS array - fetching from Supabase instead
+const TODAY = new Date().toISOString().split('T')[0]
 
 // ── Status badge config ───────────────────────────────────────────────────────
 
@@ -40,7 +40,7 @@ function fmtDate(iso) {
 export default function AttendancePage() {
   const [records, setRecords]       = useState([])
   const [search,     setSearch]     = useState('')
-  const [dateFilter, setDateFilter] = useState('2026-05-02') // Default filter
+  const [dateFilter, setDateFilter] = useState(TODAY)
   const [leaveCounts, setLeaveCounts] = useState(new Map())
 
   useEffect(() => {
@@ -129,6 +129,17 @@ export default function AttendancePage() {
 
   return (
     <div>
+      {/* Page header */}
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-9 h-9 rounded-xl bg-emerald-600/10 border border-emerald-500/20 flex items-center justify-center">
+          <CalendarCheck size={18} className="text-emerald-400" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-100 leading-tight">Attendance</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Daily check-in records and attendance tracking</p>
+        </div>
+      </div>
+
       {/* ── Stat Cards ─────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard icon={CalendarCheck} label="Present"        value={present} trend="+3 vs yesterday" trendUp color="emerald" />
@@ -288,24 +299,6 @@ export default function AttendancePage() {
         </div>
       </Card>
 
-      {/* Temporary Debug UI */}
-      <Card className="mt-8 border-dashed border-2 border-indigo-500/50">
-        <div className="px-6 py-4 border-b border-slate-800/60 bg-indigo-500/10">
-          <h3 className="font-semibold text-indigo-400 flex items-center gap-2">
-            <Clock size={16} />
-            Attendance Connection Debug
-          </h3>
-        </div>
-        <div className="p-6 overflow-auto max-h-96 text-xs text-slate-300 font-mono bg-slate-900">
-          <div>
-            <strong className="text-emerald-400">DATA SUCCESSFULLY FETCHED:</strong><br />
-            <div className="mt-2 text-indigo-300">records (mapped):</div>
-            {JSON.stringify(records, null, 2)}
-            <div className="mt-4 text-indigo-300">raw leave counts map:</div>
-            {JSON.stringify(Array.from(leaveCounts.entries()), null, 2)}
-          </div>
-        </div>
-      </Card>
     </div>
   )
 }
