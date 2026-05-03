@@ -16,8 +16,10 @@ export function ProfileClient({ profile, employee, bankDetails, balance, payslip
     address: profile?.address || '',
     nationality: profile?.nationality || 'Indian',
     personal_email: profile?.personal_email || '',
+    phone: profile?.phone || '',
     gender: profile?.gender || '',
     marital_status: profile?.marital_status || '',
+    created_at: profile?.created_at ? new Date(profile.created_at).toISOString().split('T')[0] : '',
     bank_details: {
       account_number: bankDetails?.account_number || '',
       bank_name: bankDetails?.bank_name || '',
@@ -119,7 +121,7 @@ export function ProfileClient({ profile, employee, bankDetails, balance, payslip
           <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8">
             <div className="text-center lg:text-left">
               <h1 className="text-4xl font-h1 text-white tracking-tight">{profile?.first_name} {profile?.last_name}</h1>
-              <p className="text-violet-400 font-bold text-xl mt-2 tracking-wide uppercase text-sm opacity-80">{employee?.designation || 'Staff Member'}</p>
+              <p className="text-violet-400 font-bold text-xl mt-2 tracking-wide uppercase text-sm opacity-80">{profile?.roles?.name || employee?.designation || 'Staff Member'}</p>
               
               <div className="flex flex-wrap justify-center lg:justify-start gap-x-8 gap-y-3 mt-6">
                 <div className="flex items-center gap-3 text-slate-300/80 bg-white/5 px-4 py-2 rounded-xl border border-white/5">
@@ -141,7 +143,7 @@ export function ProfileClient({ profile, employee, bankDetails, balance, payslip
               </div>
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Department</p>
-                <p className="text-white text-sm font-semibold">{employee?.department || '—'}</p>
+                <p className="text-white text-sm font-semibold">{profile?.department || '—'}</p>
               </div>
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Manager</p>
@@ -217,6 +219,7 @@ export function ProfileClient({ profile, employee, bankDetails, balance, payslip
                   { label: 'Residing Address', key: 'address', type: 'text' },
                   { label: 'Nationality', key: 'nationality', type: 'text' },
                   { label: 'Personal Email', key: 'personal_email', type: 'email' },
+                  { label: 'Phone Number', key: 'phone', type: 'text' },
                   { label: 'Gender', key: 'gender', type: 'text' },
                   { label: 'Marital Status', key: 'marital_status', type: 'text' },
                 ].map((item, idx) => (
@@ -236,7 +239,18 @@ export function ProfileClient({ profile, employee, bankDetails, balance, payslip
                 ))}
                 <div className="flex justify-between items-center group pt-2">
                   <span className="text-slate-500 text-sm font-medium tracking-wide">Date of Joining</span>
-                  <span className="text-slate-500 font-semibold text-sm border-b border-white/5 pb-1 flex-1 text-right ml-10">{employee?.created_at ? new Date(employee.created_at).toLocaleDateString() : '—'}</span>
+                  {isEditing ? (
+                    <input 
+                      type="date"
+                      value={(formData as any).created_at}
+                      onChange={(e) => setFormData({ ...formData, created_at: e.target.value })}
+                      className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-violet-500/50 flex-1 ml-4"
+                    />
+                  ) : (
+                    <span className="text-slate-200 font-semibold text-sm border-b border-white/5 pb-1 flex-1 text-right ml-10 group-hover:text-white group-hover:border-violet-500/30 transition-all">
+                      {(formData as any).created_at ? new Date((formData as any).created_at).toLocaleDateString() : '—'}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

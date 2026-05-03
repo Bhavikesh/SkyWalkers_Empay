@@ -45,7 +45,7 @@ export default async function ChangePasswordPage() {
       }
     }
 
-    redirect('/dashboard')
+    redirect('/employees')
   }
 
   return (

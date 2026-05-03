@@ -11,7 +11,7 @@ export async function PUT(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { avatar_url, dob, address, nationality, personal_email, gender, marital_status, bank_details } = body
+    const { avatar_url, dob, address, nationality, personal_email, phone, gender, marital_status, bank_details, created_at } = body
 
     const supabase = await createClient()
     
@@ -22,8 +22,10 @@ export async function PUT(request: NextRequest) {
     if (address !== undefined) profileUpdate.address = address
     if (nationality !== undefined) profileUpdate.nationality = nationality
     if (personal_email !== undefined) profileUpdate.personal_email = personal_email
+    if (phone !== undefined) profileUpdate.phone = phone
     if (gender !== undefined) profileUpdate.gender = gender
     if (marital_status !== undefined) profileUpdate.marital_status = marital_status
+    if (created_at !== undefined) profileUpdate.created_at = created_at
 
     if (Object.keys(profileUpdate).length > 0) {
       const { error: pError } = await supabase

@@ -7,8 +7,8 @@ export default function UnauthorizedPage() {
       <p className="text-gray-600 mb-8">
         You do not have permission to access this page. Your role restricts you from viewing this content.
       </p>
-      <Link href="/dashboard" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-        Return to Dashboard
+      <Link href="/employees" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+        Return to Employees
       </Link>
     </div>
   )

@@ -37,7 +37,7 @@ export async function updateSession(request: NextRequest) {
   
   if (isAuthRoute) {
     if (user) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+      return NextResponse.redirect(new URL('/employees', request.url))
     }
     return supabaseResponse
   }
@@ -63,7 +63,7 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(new URL('/change-password', request.url))
     }
     if (!profile?.is_first_login && path.startsWith('/change-password')) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+      return NextResponse.redirect(new URL('/employees', request.url))
     }
 
     // Permission-based route guards

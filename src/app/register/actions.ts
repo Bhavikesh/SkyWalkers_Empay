@@ -69,5 +69,5 @@ export async function registerCompany(formData: FormData) {
     })
   }
 
-  redirect('/dashboard')
+  redirect('/employees')
 }

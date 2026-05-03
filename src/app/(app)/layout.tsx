@@ -47,17 +47,9 @@ export default async function LayoutWrapper({ children }: { children: React.Reac
         </div>
         
         <div className="flex-1 px-4 space-y-1 overflow-y-auto">
-          <Link href="/dashboard" className="text-slate-500 px-4 py-3 flex items-center gap-3 group cursor-pointer hover:text-white hover:bg-white/5 transition-all rounded-xl">
-            <span className="material-symbols-outlined text-xl">dashboard</span>
-            <span className="font-medium">Dashboard</span>
-          </Link>
           <Link href="/employees" className="text-slate-500 px-4 py-3 flex items-center gap-3 group cursor-pointer hover:text-white hover:bg-white/5 transition-all rounded-xl">
             <span className="material-symbols-outlined text-xl">groups</span>
             <span className="font-medium">Employees</span>
-          </Link>
-          <Link href="/profile" className="text-slate-500 px-4 py-3 flex items-center gap-3 group cursor-pointer hover:text-white hover:bg-white/5 transition-all rounded-xl">
-            <span className="material-symbols-outlined text-xl">account_circle</span>
-            <span className="font-medium">My Profile</span>
           </Link>
           <Link href="/attendance" className="text-slate-500 px-4 py-3 flex items-center gap-3 group cursor-pointer hover:text-white hover:bg-white/5 transition-all rounded-xl">
             <span className="material-symbols-outlined text-xl">calendar_today</span>
@@ -170,7 +162,7 @@ export default async function LayoutWrapper({ children }: { children: React.Reac
 
         {/* Main Canvas */}
         <main className="flex-1 overflow-y-auto pt-6 pb-12 w-full">
-          <div className="max-w-[1200px] mx-auto px-4 sm:px-6">
+          <div className="w-full px-4 sm:px-6">
             {children}
           </div>
         </main>
