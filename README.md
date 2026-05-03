@@ -1,16 +1,48 @@
-# React + Vite
+# EmPay HRMS Platform 🚀
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A premium, high-performance Human Resource Management System (HRMS) built with a specialized frontend-only architecture for maximum speed and data persistence.
 
-Currently, two official plugins are available:
+## 📺 Demo Video
+Check out our full product walkthrough here:
+**[View EmPay Demo Video (Google Drive)](https://drive.google.com/drive/folders/1ZEghAkoXZK46Iwef-bbVZWXrev2wYTMY?usp=sharing)**
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## ✨ Features
+- **4 Specialized Portals:** Tailored experiences for Admin, Employee, HR, and Payroll roles.
+- **Real-time Attendance:** Seamless check-in/out tracking with automated overtime calculation.
+- **Automated Payroll:** Instant organization-wide payrun computation and professional PDF payslip generation.
+- **Leave Management:** Complete request-and-approval workflow for all time-off types.
+- **Insights & Analytics:** Interactive data visualization for organizational metrics.
+- **Zero-Backend Architecture:** 100% reliable local state persistence using React Context and LocalStorage.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🛠️ Technology Stack
+- **Framework:** Next.js (App Router)
+- **Styling:** Vanilla CSS + Lucide Icons + Google Material Symbols
+- **State Management:** React Context API
+- **Persistence:** LocalStorage API
 
-## Expanding the ESLint configuration
+## 🚀 Getting Started
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+2. **Run the development server:**
+   ```bash
+   npm run dev
+   ```
+
+3. **Access the platform:**
+   Navigate to `http://localhost:3000`
+
+---
+
+## 🔑 Demo Credentials
+- **Role:** Admin / HR / Payroll / Employee
+- **Email:** `admin@empay.com` (or any seeded email like `hr@empay.com`)
+- **Password:** *Any password will work (simulated)*
+
+---
+Built for the Odoo Hackathon 2026. 🏆
