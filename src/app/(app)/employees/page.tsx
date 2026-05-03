@@ -32,25 +32,27 @@ export default async function EmployeesPage() {
 
   const { data: todayAttendance } = await supabase
     .from('attendance')
-    .select('employee_id, check_in, check_out, status')
+    .select('employee_name, check_in, check_out, status')
     .eq('date', today)
 
   const { data: activeLeaves } = await supabase
-    .from('leaves')
-    .select('employee_id')
+    .from('leave_requests')
+    .select('employee_name')
     .lte('start_date', today)
     .gte('end_date', today)
     .eq('status', 'approved')
 
-  const myAttendance = todayAttendance?.find(a => a.employee_id === user.id) || null
+  // For myAttendance, we match by name since we are logged in user
+  const fullName = `${currentProfile?.first_name} ${currentProfile?.last_name}`
+  const myAttendance = todayAttendance?.find(a => a.employee_name === fullName) || null
 
-  const presentIds = new Set((todayAttendance || []).map(a => a.employee_id))
-  const onLeaveIds = new Set((activeLeaves || []).map(l => l.employee_id))
+  const presentNames = new Set((todayAttendance || []).map(a => a.employee_name))
+  const onLeaveNames = new Set((activeLeaves || []).map(l => l.employee_name))
 
   const stats = {
     total: employees?.length || 0,
-    present: presentIds.size,
-    onLeave: onLeaveIds.size,
+    present: presentNames.size,
+    onLeave: onLeaveNames.size,
     highRisk: 0,
   }
 
@@ -61,8 +63,8 @@ export default async function EmployeesPage() {
       currentUserId={user.id}
       canManageUsers={!!perms.can_manage_users}
       isHrOrAdmin={isHrOrAdmin}
-      presentIds={Array.from(presentIds)}
-      onLeaveIds={Array.from(onLeaveIds)}
+      presentNames={Array.from(presentNames)}
+      onLeaveNames={Array.from(onLeaveNames)}
       myAttendance={myAttendance}
     />
   )

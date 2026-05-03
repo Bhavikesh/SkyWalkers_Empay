@@ -29,7 +29,7 @@ export async function applyLeave(formData: FormData) {
     (endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24)
   ) + 1
 
-  // 1. Get Employee and Profile info
+  // 1. Get Profile info
   const { data: profile } = await supabase
     .from('profiles')
     .select('company_id, first_name, last_name')
@@ -37,14 +37,6 @@ export async function applyLeave(formData: FormData) {
     .single()
 
   if (!profile) return { error: 'Profile not found' }
-
-  const { data: employee } = await supabase
-    .from('employees')
-    .select('id')
-    .eq('profile_id', user.id)
-    .single()
-
-  if (!employee) return { error: 'Employee record not found. Contact HR.' }
 
   // 2. Check/Init Leave Balance
   if (type !== 'unpaid') {
@@ -56,7 +48,7 @@ export async function applyLeave(formData: FormData) {
     let { data: balance } = await supabase
       .from('leave_balances')
       .select('*')
-      .eq('employee_id', employee.id)
+      .eq('employee_id', user.id)
       .eq('leave_type', dbType)
       .maybeSingle()
 
@@ -65,7 +57,7 @@ export async function applyLeave(formData: FormData) {
       const { data: newBalance, error: initError } = await adminClient
         .from('leave_balances')
         .insert({
-          employee_id: employee.id,
+          employee_id: user.id,
           company_id: profile.company_id,
           leave_type: dbType,
           total_days: type.toLowerCase().includes('paid') ? 12 : 6,

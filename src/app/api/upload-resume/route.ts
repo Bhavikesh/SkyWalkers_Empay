@@ -1,4 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
+import { createAdminClient } from '@/utils/supabase/admin'
 import { getAuthContext, jsonError, jsonSuccess } from '@/utils/auth-helpers'
 import { type NextRequest } from 'next/server'
 
@@ -33,6 +34,17 @@ export async function POST(request: NextRequest) {
     // Create unique filename: user_id/timestamp_original_name
     const fileExt = file.name.split('.').pop()
     const fileName = `${ctx.user.id}/resume_${Date.now()}.${fileExt}`
+
+    // Ensure bucket exists using admin client
+    try {
+      const adminClient = createAdminClient()
+      const { data: buckets } = await adminClient.storage.listBuckets()
+      if (!buckets?.find(b => b.name === 'resumes')) {
+        await adminClient.storage.createBucket('resumes', { public: true })
+      }
+    } catch (e) {
+      console.error('Failed to create bucket with admin client', e)
+    }
 
     const { error: uploadError } = await supabase.storage
       .from('resumes')
