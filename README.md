@@ -113,7 +113,6 @@ Use any of the following credentials for testing the role-based views:
 
 ## 🏆 Hackathon Credits
 Built with ❤️ by **Team SkyWalkers** for the **Odoo Hackathon 2026**.
-- [Bhavikesh Hedau](https://github.com/Bhavikesh)
 
 ---
 *EmPay: Elevate Your Human Capital.* 📈
