@@ -92,14 +92,23 @@ export async function applyLeave(formData: FormData) {
     return { error: 'You have an overlapping leave request' }
   }
 
+  const document = formData.get('document') as File | null
+
   // 4. Submit Request
+  let finalReason = reason || ''
+  if (document && document.size > 0) {
+    finalReason += (finalReason ? '\n\n' : '') + `[Document Attached: ${document.name}]`
+  } else if (type === 'sick' && daysDiff > 3) {
+    return { error: 'A medical certificate is strictly required for sick leaves longer than 3 days.' }
+  }
+
   const { error } = await supabase.from('leave_requests').insert({
     company_id: profile.company_id,
     employee_name: `${profile.first_name} ${profile.last_name}`,
     leave_type: type,
     start_date: startDate,
     end_date: endDate,
-    reason: reason || null,
+    reason: finalReason || null,
     status: 'pending',
   })
 

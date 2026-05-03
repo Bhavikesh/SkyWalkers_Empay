@@ -85,12 +85,7 @@ export default async function LayoutWrapper({ children }: { children: React.Reac
             </Link>
           )}
 
-          {perms.can_process_payroll && (
-            <Link href="/payroll/run" className="text-slate-500 px-4 py-3 flex items-center gap-3 group cursor-pointer hover:text-white hover:bg-white/5 transition-all rounded-xl">
-              <span className="material-symbols-outlined text-xl">payments</span>
-              <span className="font-medium">Payroll</span>
-            </Link>
-          )}
+
           
           <form action="/auth/signout" method="post" className="mt-8">
             <button className="w-full text-slate-500 px-4 py-3 flex items-center gap-3 group cursor-pointer hover:text-red-400 hover:bg-red-500/10 transition-all rounded-xl">
