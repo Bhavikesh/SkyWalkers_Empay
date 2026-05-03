@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useHRMS } from '@/context/HRMSContext'
 
 export default function CheckInOutButton() {
+  const { currentUser, markAttendance } = useHRMS()
   const [isCheckedIn, setIsCheckedIn] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
 
@@ -18,9 +20,32 @@ export default function CheckInOutButton() {
     const newStatus = !isCheckedIn
     setIsCheckedIn(newStatus)
     localStorage.setItem('empay_checked_in_status', String(newStatus))
+
+    if (currentUser) {
+      const today = new Date().toISOString().split('T')[0]
+      const now = new Date()
+      const timeStr = now.toLocaleTimeString('en-US', { hour12: false }) // HH:MM:SS
+      
+      if (newStatus) {
+        // Checking IN
+        markAttendance({
+          employee_id: currentUser.id,
+          date: today,
+          check_in: timeStr,
+          check_out: null
+        })
+      } else {
+        // Checking OUT
+        markAttendance({
+          employee_id: currentUser.id,
+          date: today,
+          check_in: null, // Keep existing in backend/context by how context is coded (it merges)
+          check_out: timeStr
+        })
+      }
+    }
   }
 
-  // Prevent Next.js hydration mismatch
   if (!isMounted) {
     return (
       <button className="flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border bg-surface-container-highest text-slate-500 border-white/5 opacity-50">

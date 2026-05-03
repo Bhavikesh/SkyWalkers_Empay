@@ -1,16 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
+import { useState, useEffect, useMemo } from 'react'
+import { useHRMS } from '@/context/HRMSContext'
 
 export default function AttendanceClient({ employees, canManage, companyId }: { employees: any[], canManage: boolean, companyId: string }) {
+  const { attendance: globalAttendance, markAttendance, leaves } = useHRMS()
+  
   const [currentDate, setCurrentDate] = useState(() => {
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   })
   
-  const [attendance, setAttendance] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  // Filter attendance for current date
+  const attendance = useMemo(() => globalAttendance.filter(a => a.date === currentDate), [globalAttendance, currentDate])
+  const [loading, setLoading] = useState(false)
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -19,29 +22,6 @@ export default function AttendanceClient({ employees, canManage, companyId }: { 
   const [checkOutTime, setCheckOutTime] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-
-  const fetchAttendance = async () => {
-    setLoading(true)
-    const { data, error } = await supabase
-      .from('attendance')
-      .select('*')
-      .eq('company_id', companyId)
-      .eq('date', currentDate)
-    
-    if (data) {
-      setAttendance(data)
-    }
-    setLoading(false)
-  }
-
-  useEffect(() => {
-    fetchAttendance()
-  }, [currentDate])
 
   const changeDate = (days: number) => {
     const d = new Date(currentDate)
@@ -57,59 +37,26 @@ export default function AttendanceClient({ employees, canManage, companyId }: { 
 
   const formatTime = (timeStr: string | null) => {
     if (!timeStr) return '—'
-    // If it's already a formatted string like '08:41 AM' from seed data
     if (timeStr.includes('AM') || timeStr.includes('PM')) return timeStr
-    
-    // Otherwise try to parse it as an ISO string
     try {
       const d = new Date(timeStr)
-      if (!isNaN(d.getTime())) {
-        return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-      }
-      return timeStr // Fallback if Invalid Date
+      if (!isNaN(d.getTime())) return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+      return timeStr
     } catch {
       return timeStr
     }
   }
 
-  // Combine attendance with employee data for the selected day
   const tableData = employees.map(emp => {
     const record = attendance.find(a => a.employee_id === emp.id || a.employee_name === `${emp.first_name} ${emp.last_name}`)
     let extraHours = 0
     let workHoursNum = 0
     
     if (record?.work_hours) {
-      workHoursNum = parseFloat(record.work_hours)
-    } else if (record?.check_in && record?.check_out) {
-      const inD = new Date(record.check_in)
-      const outD = new Date(record.check_out)
-      if (!isNaN(inD.getTime()) && !isNaN(outD.getTime())) {
-        let diffHours = (outD.getTime() - inD.getTime()) / 3600000
-        if (diffHours < 0) diffHours += 24 // Handle overnight shifts
-        workHoursNum = diffHours
-      } else {
-        // Fallback parsing for string formats like '08:41 AM'
-        try {
-          const parseTime = (timeStr: string) => {
-             const [time, modifier] = timeStr.split(' ');
-             let [hours, minutes] = time.split(':');
-             if (hours === '12') hours = '00';
-             if (modifier === 'PM') hours = (parseInt(hours, 10) + 12).toString();
-             return new Date(`1970-01-01T${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:00Z`).getTime();
-          }
-          const inT = parseTime(record.check_in)
-          const outT = parseTime(record.check_out)
-          if (!isNaN(inT) && !isNaN(outT)) {
-             let diff = (outT - inT) / 3600000
-             if (diff < 0) diff += 24
-             workHoursNum = diff
-          }
-        } catch(e) {}
-      }
+      workHoursNum = typeof record.work_hours === 'number' ? record.work_hours : parseFloat(record.work_hours)
     }
-
-    if (workHoursNum > 8) {
-      extraHours = workHoursNum - 8
+    if (record?.extra_hours) {
+      extraHours = typeof record.extra_hours === 'number' ? record.extra_hours : parseFloat(record.extra_hours)
     }
     
     return {
@@ -123,10 +70,9 @@ export default function AttendanceClient({ employees, canManage, companyId }: { 
     }
   })
 
-  // Summary stats for the day
   const daysPresent = attendance.length
   const totalEmployees = employees.length
-  const leavesCount = 0 // Placeholder
+  const leavesCount = leaves.filter(l => l.start_date <= currentDate && l.end_date >= currentDate && l.status === 'Approved').length
 
   const openModal = (record: any = null) => {
     if (!canManage) return
@@ -134,12 +80,11 @@ export default function AttendanceClient({ employees, canManage, companyId }: { 
       setEditingId(record.recordId)
       setSelectedEmp(record.id)
       
-      // Attempt to extract HH:MM for the time input
       let inVal = ''
       let outVal = ''
       if (record.check_in) {
         if (record.check_in.includes('T')) inVal = new Date(record.check_in).toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit'})
-        else inVal = record.check_in.substring(0, 5) // Fallback for '08:41 AM' -> '08:41'
+        else inVal = record.check_in.substring(0, 5)
       }
       if (record.check_out) {
         if (record.check_out.includes('T')) outVal = new Date(record.check_out).toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit'})
@@ -177,33 +122,14 @@ export default function AttendanceClient({ employees, canManage, companyId }: { 
         d.setHours(parseInt(h), parseInt(m), 0)
         outIso = d.toISOString()
       }
-      
-      let work_hours = null
-      if (inIso && outIso) {
-         let diffHours = (new Date(outIso).getTime() - new Date(inIso).getTime()) / 3600000
-         if (diffHours < 0) diffHours += 24 // Handle overnight shifts
-         work_hours = diffHours
-      }
-      
-      const empName = employees.find(e => e.id === selectedEmp)
 
-      const payload = {
+      markAttendance({
         employee_id: selectedEmp,
-        company_id: companyId,
         date: currentDate,
         check_in: inIso,
-        check_out: outIso,
-        work_hours: work_hours,
-        employee_name: empName ? `${empName.first_name} ${empName.last_name}` : null
-      }
-
-      if (editingId) {
-        await supabase.from('attendance').update(payload).eq('id', editingId)
-      } else {
-        await supabase.from('attendance').upsert(payload, { onConflict: 'employee_id, date' })
-      }
+        check_out: outIso
+      })
       
-      await fetchAttendance()
       setIsModalOpen(false)
     } catch (e) {
       console.error(e)

@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { createUser } from './actions'
-import Link from 'next/link'
+import { useHRMS } from '@/context/HRMSContext'
 
 export default function CreateEmployeePage() {
+  const { addEmployee } = useHRMS()
   const [result, setResult] = useState<{ type: 'error' | 'success', text: string, creds?: any } | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -15,17 +15,33 @@ export default function CreateEmployeePage() {
     
     const form = e.currentTarget
     const formData = new FormData(form)
-    const res = await createUser(formData)
     
-    if (res?.error) {
-      setResult({ type: 'error', text: res.error })
-    } else if (res?.success) {
+    const firstName = formData.get('first_name') as string
+    const lastName = formData.get('last_name') as string
+    const email = formData.get('email') as string
+    const phone = formData.get('phone') as string
+    const department = formData.get('department') as string
+    const role = formData.get('role') as any
+
+    try {
+      addEmployee({
+        name: `${firstName} ${lastName}`,
+        email,
+        phone,
+        department,
+        role,
+        salary: 60000, // default
+        status: 'active'
+      })
+
       setResult({ 
         type: 'success', 
         text: 'Employee created successfully!', 
-        creds: { loginId: res.generatedId, password: res.generatedPassword }
+        creds: { loginId: email, password: 'password123' } // Demo mock password
       })
       form.reset()
+    } catch (err: any) {
+      setResult({ type: 'error', text: err.message || 'Failed to create employee' })
     }
     
     setLoading(false)
@@ -53,7 +69,7 @@ export default function CreateEmployeePage() {
       )}
 
       {result && result.type === 'success' && (
-        <div className="glass-card p-8 mb-8 rounded-2xl border-l-4 border-l-emerald-500 max-w-2xl relative overflow-hidden">
+        <div className="glass-card p-8 mb-8 rounded-2xl border-l-4 border-l-emerald-500 max-w-2xl relative overflow-hidden animate-in fade-in">
           <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none"></div>
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
@@ -130,8 +146,8 @@ export default function CreateEmployeePage() {
               <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-lg">admin_panel_settings</span>
               <select required name="role" className="w-full bg-surface-container-highest border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all outline-none appearance-none cursor-pointer">
                 <option value="Employee">Employee (Standard Access)</option>
-                <option value="HR Officer">HR Officer</option>
-                <option value="Payroll Officer">Payroll Officer</option>
+                <option value="HR">HR Officer</option>
+                <option value="Payroll">Payroll Officer</option>
                 <option value="Admin">Admin (Full Access)</option>
               </select>
             </div>

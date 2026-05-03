@@ -1,19 +1,15 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { DollarSign, TrendingUp, CreditCard, AlertCircle, Download, Clock, Play } from 'lucide-react'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { useHRMS } from '@/context/HRMSContext'
 
 const statusVariant: Record<string, string> = {
   Paid: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
   Pending: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
   Failed: 'bg-red-500/10 text-red-400 border-red-500/20',
-  Processed: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
+  Computed: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
+  Draft: 'bg-slate-500/10 text-slate-400 border-slate-500/20'
 }
 
 const fmt = (n: number) => `₹${Number(n).toLocaleString('en-IN')}`
@@ -28,83 +24,49 @@ const avatarGradients = [
 ]
 
 export default function PayrollPage() {
+  const { employees, payroll, computePayroll, updatePayrollStatus } = useHRMS()
+  
   const [activeTab, setActiveTab] = useState('Dashboard')
-  const [payroll, setPayroll] = useState<any[]>([])
-  const [employees, setEmployees] = useState<any[]>([])
-  const [monthFilter, setMonthFilter] = useState('May 2026')
-  const [loading, setLoading] = useState(true)
+  const [monthFilter, setMonthFilter] = useState(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  })
+  const [loading, setLoading] = useState(false)
   
   // States for new views
-  const [payrunData, setPayrunData] = useState<any[]>([])
   const [selectedEmp, setSelectedEmp] = useState<any>(null)
   const [payslipTab, setPayslipTab] = useState('Worked Days')
-  const [payslipStatus, setPayslipStatus] = useState('Draft')
   const [isComputing, setIsComputing] = useState(false)
 
-  useEffect(() => {
-    async function fetchPayroll() {
-      setLoading(true)
-      const { data, error } = await supabase
-        .from('payroll')
-        .select('*')
-        .order('employee_name', { ascending: true })
+  const months = useMemo(() => {
+    const m = new Set(payroll.map(p => p.month))
+    m.add(monthFilter)
+    return Array.from(m).sort().reverse()
+  }, [payroll, monthFilter])
 
-      if (error) {
-        console.error('Error fetching payroll:', error)
-      } else {
-        setPayroll(data || [])
+  const filtered = useMemo(() => {
+    return payroll.filter(p => p.month === monthFilter).map(p => {
+      const emp = employees.find(e => e.id === p.employee_id)
+      return {
+        ...p,
+        employee_name: emp?.name || 'Unknown',
+        net_salary: p.net,
+        basic_salary: p.basic
       }
-      setLoading(false)
-    }
-    
-    async function fetchEmployees() {
-      const { data } = await supabase.from('employees').select('*').eq('status', 'active')
-      if (data) {
-        setEmployees(data.map(emp => {
-          const base = 40000 + ((emp.name || '').length * 1500)
-          const allowances = base * 0.15
-          const deductions = base * 0.10
-          return {
-            id: emp.id,
-            employee_name: emp.name,
-            code: emp.code || 'EMP-00X',
-            dept: emp.department || 'General',
-            pan: 'ABCDE1234F',
-            uan: '100023456789',
-            basic_salary: base,
-            days_present: 20,
-            allowances: allowances,
-            deductions: deductions,
-            gross_salary: base + allowances,
-            net_salary: (base + allowances) - deductions,
-            status: 'Processed'
-          }
-        }))
-      }
-    }
-    
-    fetchPayroll()
-    fetchEmployees()
-  }, [])
-
-  const months = useMemo(() => [...new Set(payroll.map(p => p.month))].sort().reverse(), [payroll])
-  const filtered = useMemo(() => payroll.filter(p => p.month === monthFilter), [payroll, monthFilter])
+    })
+  }, [payroll, monthFilter, employees])
 
   const totalNet = filtered.reduce((a, p) => a + Number(p.net_salary), 0)
   const avgSalary = filtered.length ? Math.round(totalNet / filtered.length) : 0
   const disbursed = filtered.filter(p => p.status === 'Paid').reduce((a, p) => a + Number(p.net_salary), 0)
   
-  // Warnings logic
-  // Calculate dynamic warnings from payroll history if banks were missing, here mocked safely as an indicator
-  const noBankCount = payroll.length > 0 ? Math.floor(payroll.length * 0.1) : 0
-  const noManagerCount = payroll.length > 0 ? Math.floor(payroll.length * 0.05) : 0
-  const totalWarnings = noBankCount + noManagerCount
+  const totalWarnings = 0
 
   const statCards = [
     { icon: DollarSign, label: 'Total Payroll', value: fmt(totalNet), trend: '+4.2% vs last month', color: 'emerald' },
     { icon: TrendingUp, label: 'Avg. Salary', value: fmt(avgSalary), trend: '', color: 'indigo' },
     { icon: CreditCard, label: 'Disbursed', value: fmt(disbursed), trend: `${filtered.filter(p => p.status === 'Paid').length} employees`, color: 'violet' },
-    { icon: AlertCircle, label: 'Warnings', value: String(totalWarnings), trend: `${noBankCount} no bank, ${noManagerCount} no manager`, color: 'amber' },
+    { icon: AlertCircle, label: 'Warnings', value: String(totalWarnings), trend: `No errors found`, color: 'amber' },
   ]
 
   const colorMap: Record<string, string> = {
@@ -116,44 +78,10 @@ export default function PayrollPage() {
 
   const runPayroll = async () => {
     setLoading(true)
-    
-    // Fetch REAL live employees from Supabase
-    const { data: emps, error } = await supabase
-      .from('employees')
-      .select('*')
-      .eq('status', 'active')
-      
-    // If employees table is empty, gracefully fallback to the payroll history so the run button still works
-    const targetSource = emps && emps.length > 0 ? emps : payroll
-      
-    if (targetSource && targetSource.length > 0) {
-      const generated = targetSource.map((emp) => {
-        const nameLength = (emp.name || emp.employee_name || '').length
-        const base = Number(emp.basic_salary) || (40000 + (nameLength * 1500))
-        const allowances = Number(emp.allowances) || base * 0.15
-        const deductions = Number(emp.deductions) || base * 0.10
-        const gross = base + allowances
-        const net = gross - deductions
-        
-        return {
-          id: emp.id,
-          employee_name: emp.name || emp.employee_name,
-          code: emp.code || 'EMP-00X',
-          dept: emp.department || emp.dept || 'General',
-          pan: 'ABCDE1234F',
-          uan: '100023456789',
-          basic_salary: base,
-          days_present: 20,
-          allowances: allowances,
-          deductions: deductions,
-          gross_salary: gross,
-          net_salary: net,
-          status: 'Processed'
-        }
-      })
-      setPayrunData(generated)
-    }
-    setLoading(false)
+    setTimeout(() => {
+      computePayroll(monthFilter)
+      setLoading(false)
+    }, 800)
   }
 
   const handlePrint = () => {
@@ -175,7 +103,6 @@ export default function PayrollPage() {
           </html>
         `)
         printWindow.document.close()
-        // Wait briefly for tailwind to apply styles before printing
         setTimeout(() => {
           printWindow.print()
         }, 500)
@@ -205,7 +132,7 @@ export default function PayrollPage() {
             ) : data.length === 0 ? (
               <tr>
                 <td colSpan={7} className="text-center py-16 text-slate-600 text-sm">
-                  No records found.
+                  No records found. Click "Run Payroll" to compute.
                 </td>
               </tr>
             ) : (
@@ -219,11 +146,11 @@ export default function PayrollPage() {
                       <span className="font-medium text-white">{p.employee_name}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-slate-300">{fmt(p.basic_salary)}</td>
+                  <td className="px-6 py-4 text-slate-300">{fmt(p.basic)}</td>
                   <td className="px-6 py-4 text-emerald-400 font-medium">+{fmt(p.allowances)}</td>
                   <td className="px-6 py-4 text-red-400">-{fmt(p.deductions)}</td>
-                  {isPayrun && <td className="px-6 py-4 text-white font-medium">{fmt(p.gross_salary)}</td>}
-                  <td className="px-6 py-4 text-white font-semibold">{fmt(p.net_salary)}</td>
+                  {isPayrun && <td className="px-6 py-4 text-white font-medium">{fmt(p.basic + p.allowances)}</td>}
+                  <td className="px-6 py-4 text-white font-semibold">{fmt(p.net)}</td>
                   <td className="px-6 py-4">
                     <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${statusVariant[p.status] || 'bg-surface-container-highest text-slate-400 border-white/10'}`}>
                       {p.status}
@@ -288,7 +215,7 @@ export default function PayrollPage() {
               onChange={e => setMonthFilter(e.target.value)}
               className="px-3 py-2 rounded-xl bg-surface-container-highest border border-white/10 text-sm text-slate-300 focus:outline-none focus:border-violet-500/60"
             >
-              {months.length > 0 ? months.map(m => <option key={m} value={m}>{m}</option>) : <option>May 2026</option>}
+              {months.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </div>
           {renderTable(filtered)}
@@ -300,7 +227,7 @@ export default function PayrollPage() {
         <div className="animate-in fade-in">
           <div className="flex justify-between items-center bg-surface-container-highest border border-white/5 p-6 rounded-2xl mb-6">
             <div>
-              <h3 className="text-lg font-bold text-white">Current Payrun</h3>
+              <h3 className="text-lg font-bold text-white">Current Payrun ({monthFilter})</h3>
               <p className="text-sm text-slate-400">Process salaries for the current active period.</p>
             </div>
             <button 
@@ -310,7 +237,7 @@ export default function PayrollPage() {
               <Play size={16} fill="currentColor" /> Run Payroll
             </button>
           </div>
-          {payrunData.length > 0 && renderTable(payrunData, true)}
+          {renderTable(filtered, true)}
         </div>
       )}
 
@@ -321,48 +248,24 @@ export default function PayrollPage() {
             <div className="glass-card rounded-2xl p-12 text-center border border-white/5">
               <p className="text-slate-400">Select an employee from the Payrun tab or Dashboard to view their payslip details.</p>
               <div className="mt-6 flex flex-wrap gap-4 justify-center">
-                {(employees.length > 0 ? employees : payroll).map((emp) => {
-                  const basic = Number(emp.basic_salary) || 40000;
-                  const allow = Number(emp.allowances) || (basic * 0.15);
-                  const deduc = Number(emp.deductions) || (basic * 0.10);
-                  const net = Number(emp.net_salary) || ((basic + allow) - deduc);
-                  
-                  return (
-                    <button 
-                      key={emp.id} 
-                      onClick={() => {
-                        setSelectedEmp({
-                          ...emp,
-                          basic_salary: basic,
-                          allowances: allow,
-                          deductions: deduc,
-                          net_salary: net,
-                          days_present: 20,
-                          code: emp.code || 'EMP-00X',
-                          dept: emp.department || emp.dept || 'General',
-                          pan: 'ABCDE1234F',
-                          uan: '100023456789'
-                        });
-                        setPayslipStatus('Draft');
-                      }} 
-                      className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-colors text-sm"
-                    >
-                      {emp.employee_name}
-                    </button>
-                  )
-                })}
+                {filtered.map((emp) => (
+                  <button 
+                    key={emp.id} 
+                    onClick={() => {
+                      setSelectedEmp(emp);
+                    }} 
+                    className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-colors text-sm"
+                  >
+                    {emp.employee_name}
+                  </button>
+                ))}
               </div>
             </div>
           ) : (
             <div className="glass-card rounded-2xl p-8 border border-white/5">
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-3 mb-8">
-                <button onClick={() => { setSelectedEmp(null); setPayslipStatus('Draft'); }} className="px-5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium transition-colors shadow-lg active:scale-95">New Payslip</button>
-                <button onClick={() => { setIsComputing(true); setTimeout(() => { setIsComputing(false); setPayslipStatus('Computed'); }, 800); }} className="px-5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-sm font-medium transition-colors active:scale-95 flex items-center gap-2">
-                  {isComputing ? <Clock size={14} className="animate-spin" /> : null}
-                  {isComputing ? 'Computing...' : 'Compute'}
-                </button>
-                <button onClick={() => setPayslipStatus('Validated')} className={`px-5 py-2 rounded-xl border text-sm font-medium transition-colors active:scale-95 ${payslipStatus === 'Validated' ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-white/5 hover:bg-white/10 border-white/10 text-white'}`}>Validate</button>
+                <button onClick={() => { updatePayrollStatus(selectedEmp.id, 'Paid'); setSelectedEmp({...selectedEmp, status: 'Paid'}) }} className={`px-5 py-2 rounded-xl border text-sm font-medium transition-colors active:scale-95 ${selectedEmp.status === 'Paid' ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-white/5 hover:bg-white/10 border-white/10 text-white'}`}>Mark as Paid</button>
                 <button onClick={() => { setSelectedEmp(null); setActiveTab('Dashboard'); }} className="px-5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-sm font-medium transition-colors active:scale-95">Cancel</button>
                 <button onClick={handlePrint} className="px-5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-sm font-medium transition-colors active:scale-95 flex items-center gap-2">
                   <Download size={14} /> Print
@@ -373,14 +276,13 @@ export default function PayrollPage() {
               <div className="mb-8 border-b border-white/10 pb-6">
                 <div className="flex items-center gap-4 mb-6">
                   <h3 className="text-2xl font-bold text-white">[{selectedEmp.employee_name}]</h3>
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${payslipStatus === 'Validated' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : payslipStatus === 'Computed' ? 'bg-violet-500/10 text-violet-400 border-violet-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}>
-                    {payslipStatus}
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${statusVariant[selectedEmp.status]}`}>
+                    {selectedEmp.status}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm max-w-md">
-                  <div className="flex justify-between"><span className="text-slate-400">Payrun</span> <span className="text-violet-400 font-medium">Payrun May 2026</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">Payrun</span> <span className="text-violet-400 font-medium">{monthFilter}</span></div>
                   <div className="flex justify-between"><span className="text-slate-400">Salary Structure</span> <span className="text-violet-400 font-medium">Regular Pay</span></div>
-                  <div className="flex justify-between"><span className="text-slate-400">Period</span> <span className="text-white">01 May To 31 May</span></div>
                 </div>
               </div>
               
@@ -415,26 +317,11 @@ export default function PayrollPage() {
                     <tbody>
                       <tr className="border-b border-white/5">
                         <td className="py-4 text-white">Attendance</td>
-                        <td className="py-4 text-slate-300">{selectedEmp.days_present}.00 <span className="text-slate-500 text-xs ml-1">(5 working days in week)</span></td>
-                        <td className="py-4 text-white text-right">₹ {(selectedEmp.basic_salary * (selectedEmp.days_present / 22)).toFixed(6)}</td>
-                      </tr>
-                      <tr className="border-b border-white/5">
-                        <td className="py-4 text-white">Paid Time off</td>
-                        <td className="py-4 text-slate-300">2.00 <span className="text-slate-500 text-xs ml-1">(2 Paid leaves/Month)</span></td>
-                        <td className="py-4 text-white text-right">₹ {(selectedEmp.basic_salary * (2 / 22)).toFixed(6)}</td>
+                        <td className="py-4 text-slate-300">Based on Records</td>
+                        <td className="py-4 text-white text-right">₹ {selectedEmp.basic.toFixed(2)}</td>
                       </tr>
                     </tbody>
-                    <tfoot>
-                      <tr className="font-bold border-b border-white/10">
-                        <td className="py-4"></td>
-                        <td className="py-4 text-white">{(selectedEmp.days_present + 2).toFixed(2)}</td>
-                        <td className="py-4 text-white text-right">₹ {(selectedEmp.basic_salary).toFixed(2)}</td>
-                      </tr>
-                    </tfoot>
                   </table>
-                  <p className="text-sm text-slate-400 italic">
-                    Salary is calculated based on the employee's monthly attendance. Paid leaves are included in the total payable days, while unpaid leaves are deducted from the salary
-                  </p>
                 </div>
               )}
 
@@ -445,7 +332,7 @@ export default function PayrollPage() {
                     <div className="space-y-3">
                       <div className="flex justify-between py-2 border-b border-white/5">
                         <span className="text-slate-300">Basic Salary</span>
-                        <span className="text-white font-medium">{fmt(selectedEmp.basic_salary)}</span>
+                        <span className="text-white font-medium">{fmt(selectedEmp.basic)}</span>
                       </div>
                       <div className="flex justify-between py-2 border-b border-white/5">
                         <span className="text-slate-300">Allowances</span>
@@ -453,7 +340,7 @@ export default function PayrollPage() {
                       </div>
                       <div className="flex justify-between pt-2">
                         <span className="font-bold text-white">Gross Earnings</span>
-                        <span className="font-bold text-white">{fmt(selectedEmp.basic_salary + selectedEmp.allowances)}</span>
+                        <span className="font-bold text-white">{fmt(selectedEmp.basic + selectedEmp.allowances)}</span>
                       </div>
                     </div>
                   </div>
@@ -473,13 +360,9 @@ export default function PayrollPage() {
                   </div>
 
                   <div className="md:col-span-2 mt-4 pt-6 border-t border-white/10 flex justify-between items-center bg-violet-500/5 -mx-8 -mb-8 p-8 rounded-b-2xl">
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">Total Worked Days</h4>
-                      <p className="text-white font-medium">{selectedEmp.days_present} Days</p>
-                    </div>
-                    <div className="text-right">
+                    <div className="text-right ml-auto">
                       <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">Net Payable</h4>
-                      <p className="text-3xl font-bold text-violet-400">{fmt(selectedEmp.net_salary)}</p>
+                      <p className="text-3xl font-bold text-violet-400">{fmt(selectedEmp.net)}</p>
                     </div>
                   </div>
                 </div>
@@ -496,33 +379,15 @@ export default function PayrollPage() {
             <div className="glass-card w-full rounded-2xl p-12 text-center border border-white/5">
               <p className="text-slate-400">Select an employee from the Dashboard to preview PDF.</p>
               <div className="mt-6 flex flex-wrap gap-4 justify-center">
-                {(employees.length > 0 ? employees : payroll).map((emp) => {
-                  const basic = Number(emp.basic_salary) || 40000;
-                  const allow = Number(emp.allowances) || (basic * 0.15);
-                  const deduc = Number(emp.deductions) || (basic * 0.10);
-                  const net = Number(emp.net_salary) || ((basic + allow) - deduc);
-                  
-                  return (
-                    <button 
-                      key={emp.id} 
-                      onClick={() => setSelectedEmp({
-                        ...emp,
-                        basic_salary: basic,
-                        allowances: allow,
-                        deductions: deduc,
-                        net_salary: net,
-                        days_present: 20,
-                        code: emp.code || 'EMP-00X',
-                        dept: emp.department || emp.dept || 'General',
-                        pan: 'ABCDE1234F',
-                        uan: '100023456789'
-                      })} 
-                      className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-colors text-sm"
-                    >
-                      {emp.employee_name}
-                    </button>
-                  )
-                })}
+                {filtered.map((emp) => (
+                  <button 
+                    key={emp.id} 
+                    onClick={() => setSelectedEmp(emp)} 
+                    className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-colors text-sm"
+                  >
+                    {emp.employee_name}
+                  </button>
+                ))}
               </div>
             </div>
           ) : (
@@ -540,21 +405,16 @@ export default function PayrollPage() {
 
                 <div className="grid grid-cols-2 gap-y-4 gap-x-12 mb-10 text-sm">
                   <div className="flex justify-between border-b border-black/10 pb-1"><strong>Employee Name:</strong> <span className="text-slate-700">{selectedEmp.employee_name}</span></div>
-                  <div className="flex justify-between border-b border-black/10 pb-1"><strong>Pay Period:</strong> <span className="text-slate-700">May 2026</span></div>
-                  <div className="flex justify-between border-b border-black/10 pb-1"><strong>Employee Code:</strong> <span className="text-slate-700">{selectedEmp.code}</span></div>
-                  <div className="flex justify-between border-b border-black/10 pb-1"><strong>Worked Days:</strong> <span className="text-slate-700">{selectedEmp.days_present}</span></div>
-                  <div className="flex justify-between border-b border-black/10 pb-1"><strong>Department:</strong> <span className="text-slate-700">{selectedEmp.dept}</span></div>
-                  <div className="flex justify-between border-b border-black/10 pb-1"><strong>Bank A/c:</strong> <span className="text-slate-700">{selectedEmp.bank || 'Not Provided'}</span></div>
-                  <div className="flex justify-between border-b border-black/10 pb-1"><strong>PAN Number:</strong> <span className="text-slate-700">{selectedEmp.pan}</span></div>
-                  <div className="flex justify-between border-b border-black/10 pb-1"><strong>UAN Number:</strong> <span className="text-slate-700">{selectedEmp.uan}</span></div>
+                  <div className="flex justify-between border-b border-black/10 pb-1"><strong>Pay Period:</strong> <span className="text-slate-700">{monthFilter}</span></div>
+                  <div className="flex justify-between border-b border-black/10 pb-1"><strong>Employee Code:</strong> <span className="text-slate-700">EMP-${selectedEmp.employee_id}</span></div>
                 </div>
 
                 <div className="grid grid-cols-2 border border-black mb-10">
                   <div className="border-r border-black">
                     <div className="border-b border-black p-3 font-bold bg-slate-100 uppercase text-xs tracking-wider">Earnings</div>
-                    <div className="p-3 flex justify-between text-sm"><span>Basic Salary</span> <span>{fmt(selectedEmp.basic_salary)}</span></div>
+                    <div className="p-3 flex justify-between text-sm"><span>Basic Salary</span> <span>{fmt(selectedEmp.basic)}</span></div>
                     <div className="p-3 flex justify-between text-sm"><span>Allowances</span> <span>{fmt(selectedEmp.allowances)}</span></div>
-                    <div className="p-3 mt-10 border-t border-black font-bold flex justify-between"><span>Total Earnings</span> <span>{fmt(selectedEmp.basic_salary + selectedEmp.allowances)}</span></div>
+                    <div className="p-3 mt-10 border-t border-black font-bold flex justify-between"><span>Total Earnings</span> <span>{fmt(selectedEmp.basic + selectedEmp.allowances)}</span></div>
                   </div>
                   <div>
                     <div className="border-b border-black p-3 font-bold bg-slate-100 uppercase text-xs tracking-wider">Deductions</div>
@@ -565,7 +425,7 @@ export default function PayrollPage() {
 
                 <div className="flex justify-between items-center border-2 border-black p-5 font-bold text-xl mb-12 bg-slate-50">
                   <span className="uppercase tracking-widest text-sm">Total Net Payable</span>
-                  <span>{fmt(selectedEmp.net_salary)}</span>
+                  <span>{fmt(selectedEmp.net)}</span>
                 </div>
 
                 <div className="text-xs text-slate-500 text-center border-t border-black/20 pt-6">

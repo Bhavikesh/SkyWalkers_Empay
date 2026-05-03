@@ -1,11 +1,41 @@
-import { login } from './actions'
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { AtSign, Lock, Eye } from 'lucide-react'
+import { AtSign } from 'lucide-react'
 import PasswordInput from './PasswordInput'
+import { useHRMS } from '@/context/HRMSContext'
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ message?: string }> }) {
-  const params = await searchParams
+export default function LoginPage() {
+  const router = useRouter()
+  const { login, employees } = useHRMS()
+  const [errorMsg, setErrorMsg] = useState('')
+
+  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    const loginId = formData.get('login_id') as string
+    
+    // Find matching employee by email or mock login ID (EMP-ID)
+    const emp = employees.find(e => 
+      e.email.toLowerCase() === loginId.toLowerCase() || 
+      `EMP-${e.id}`.toLowerCase() === loginId.toLowerCase()
+    )
+
+    if (emp) {
+      login({
+        id: emp.id,
+        name: emp.name,
+        email: emp.email,
+        role: emp.role as any
+      })
+      router.push('/employees')
+    } else {
+      setErrorMsg('Invalid login credentials. Please use admin@empay.com or hr@empay.com for testing.')
+    }
+  }
 
   return (
     <div className="min-h-screen w-full flex bg-[#050505] text-white">
@@ -47,7 +77,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             <p className="text-gray-400 text-sm">Enter your credentials to access your EmPay dashboard.</p>
           </div>
 
-          <form className="flex flex-col gap-4">
+          <form onSubmit={handleLogin} className="flex flex-col gap-4">
             
             {/* Email / Login ID */}
             <div className="flex flex-col gap-1.5">
@@ -59,7 +89,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
                 <input
                   className="w-full rounded-lg pl-10 pr-4 py-3 bg-[#141414] border border-[#222] focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder:text-gray-600 text-sm"
                   name="login_id"
-                  placeholder="name@company.com"
+                  placeholder="admin@empay.com"
+                  defaultValue="admin@empay.com"
                   required
                 />
               </div>
@@ -67,7 +98,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
 
             {/* Password */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-gray-400" htmlFor="password">Password</label>
+              <label className="text-xs font-semibold text-gray-400" htmlFor="password">Password (Any password works)</label>
               <PasswordInput />
             </div>
 
@@ -81,15 +112,15 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             </div>
 
             {/* Error Message */}
-            {params?.message && (
+            {errorMsg && (
               <p className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center rounded-lg">
-                {params.message}
+                {errorMsg}
               </p>
             )}
 
             {/* Submit Button */}
             <button
-              formAction={login}
+              type="submit"
               className="w-full bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 rounded-lg py-3 text-white text-sm font-semibold shadow-lg shadow-blue-900/20 transition-all hover:scale-[1.02]"
             >
               Sign In

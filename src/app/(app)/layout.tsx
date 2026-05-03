@@ -1,37 +1,35 @@
+'use client'
+
 import Link from 'next/link';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import CheckInOutButton from '@/components/CheckInOutButton';
+import { useHRMS } from '@/context/HRMSContext';
+import { useEffect } from 'react';
 
-export default async function LayoutWrapper({ children }: { children: React.ReactNode }) {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-      },
+export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const { currentUser, logout } = useHRMS();
+
+  useEffect(() => {
+    // If not logged in, simulate protection by redirecting
+    if (!currentUser) {
+      router.push('/login');
     }
-  );
+  }, [currentUser, router]);
 
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return <>{children}</>;
+  if (!currentUser) {
+    return null; // Or a loading spinner
   }
 
-  // Fetch user profile
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*, roles(*)')
-    .eq('id', user.id)
-    .single();
+  const perms = {
+    can_manage_users: currentUser.role === 'Admin' || currentUser.role === 'HR',
+    can_manage_leaves: currentUser.role === 'Admin' || currentUser.role === 'HR'
+  };
 
-  const perms = (Array.isArray(profile?.roles) ? profile?.roles[0] : profile?.roles) as any || {};
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -88,12 +86,10 @@ export default async function LayoutWrapper({ children }: { children: React.Reac
 
 
           
-          <form action="/auth/signout" method="post" className="mt-8">
-            <button className="w-full text-slate-500 px-4 py-3 flex items-center gap-3 group cursor-pointer hover:text-red-400 hover:bg-red-500/10 transition-all rounded-xl">
-              <span className="material-symbols-outlined text-xl">logout</span>
-              <span className="font-medium">Sign Out</span>
-            </button>
-          </form>
+          <button onClick={handleLogout} className="mt-8 w-full text-slate-500 px-4 py-3 flex items-center gap-3 group cursor-pointer hover:text-red-400 hover:bg-red-500/10 transition-all rounded-xl">
+            <span className="material-symbols-outlined text-xl">logout</span>
+            <span className="font-medium">Sign Out</span>
+          </button>
         </div>
 
         {perms.can_manage_users && (
@@ -122,15 +118,11 @@ export default async function LayoutWrapper({ children }: { children: React.Reac
             <div className="relative group cursor-pointer">
               <div className="flex items-center gap-3">
                 <div className="text-right hidden sm:block">
-                  <p className="text-xs font-bold text-white group-hover:text-violet-400 transition-colors">{profile?.first_name} {profile?.last_name}</p>
-                  <p className="text-[10px] text-slate-500 font-medium tracking-wide uppercase">{profile?.role || 'Employee'}</p>
+                  <p className="text-xs font-bold text-white group-hover:text-violet-400 transition-colors">{currentUser.name}</p>
+                  <p className="text-[10px] text-slate-500 font-medium tracking-wide uppercase">{currentUser.role || 'Employee'}</p>
                 </div>
                 <div className="w-10 h-10 rounded-full border-2 border-white/10 group-hover:border-violet-500 transition-all flex items-center justify-center bg-violet-900 text-white font-bold text-sm shadow-lg overflow-hidden">
-                  {profile?.avatar_url ? (
-                    <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-                  ) : (
-                    <>{profile?.first_name?.[0]}{profile?.last_name?.[0]}</>
-                  )}
+                  {currentUser.name?.[0]}
                 </div>
               </div>
 
@@ -142,12 +134,10 @@ export default async function LayoutWrapper({ children }: { children: React.Reac
                     My Profile
                   </Link>
                   <div className="h-px bg-white/5 my-1 w-full" />
-                  <form action="/auth/signout" method="post" className="w-full m-0">
-                    <button type="submit" className="w-full text-left px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors flex items-center gap-2">
-                      <span className="material-symbols-outlined text-lg">logout</span>
-                      Log Out
-                    </button>
-                  </form>
+                  <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors flex items-center gap-2">
+                    <span className="material-symbols-outlined text-lg">logout</span>
+                    Log Out
+                  </button>
                 </div>
               </div>
             </div>

@@ -1,29 +1,22 @@
-import { createClient } from '@/utils/supabase/server'
-import { redirect } from 'next/navigation'
-import Link from 'next/link'
+'use client'
+
+import { useHRMS } from '@/context/HRMSContext'
 import { LeaveApplyClient } from './client'
 
-export default async function LeaveApplyPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+export default function LeaveApplyPage() {
+  const { currentUser, leaves } = useHRMS()
 
-  // Get leave balance
-  const currentYear = new Date().getFullYear()
-  const { data: balance } = await supabase
-    .from('leave_balances')
-    .select('*')
-    .eq('employee_id', user.id)
-    .eq('year', currentYear)
-    .maybeSingle()
+  if (!currentUser) return null
 
-  // Get leave history
-  const { data: leaveHistory } = await supabase
-    .from('leaves')
-    .select('*')
-    .eq('employee_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(20)
+  // Hardcoded mock balance for the demo since there's no backend
+  const balance = {
+    paid_total: 12, paid_used: 2,
+    sick_total: 6, sick_used: 1,
+    casual_total: 4, casual_used: 0
+  }
+
+  // Filter leaves for this user
+  const leaveHistory = leaves.filter(l => l.employee_id === currentUser.id).sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime())
 
   return (
     <>
@@ -40,47 +33,45 @@ export default async function LeaveApplyPage() {
       </div>
 
       {/* Leave Balance */}
-      {balance && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="glass-card p-6 rounded-2xl flex flex-col gap-1">
-            <div className="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-2">
-              <span className="material-symbols-outlined">beach_access</span>
-            </div>
-            <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Paid Leave</span>
-            <div className="flex items-end gap-2 mt-1">
-              <span className="text-3xl font-h1 text-white">{balance.paid_total - balance.paid_used}</span>
-              <span className="text-slate-500 text-sm mb-1 font-medium">/ {balance.paid_total} remaining</span>
-            </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="glass-card p-6 rounded-2xl flex flex-col gap-1">
+          <div className="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-2">
+            <span className="material-symbols-outlined">beach_access</span>
           </div>
-          <div className="glass-card p-6 rounded-2xl flex flex-col gap-1">
-            <div className="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center mb-2">
-              <span className="material-symbols-outlined">local_hospital</span>
-            </div>
-            <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Sick Leave</span>
-            <div className="flex items-end gap-2 mt-1">
-              <span className="text-3xl font-h1 text-white">{balance.sick_total - balance.sick_used}</span>
-              <span className="text-slate-500 text-sm mb-1 font-medium">/ {balance.sick_total} remaining</span>
-            </div>
-          </div>
-          <div className="glass-card p-6 rounded-2xl flex flex-col gap-1">
-            <div className="w-10 h-10 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center mb-2">
-              <span className="material-symbols-outlined">event_note</span>
-            </div>
-            <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Casual Leave</span>
-            <div className="flex items-end gap-2 mt-1">
-              <span className="text-3xl font-h1 text-white">{balance.casual_total - balance.casual_used}</span>
-              <span className="text-slate-500 text-sm mb-1 font-medium">/ {balance.casual_total} remaining</span>
-            </div>
+          <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Paid Leave</span>
+          <div className="flex items-end gap-2 mt-1">
+            <span className="text-3xl font-h1 text-white">{balance.paid_total - balance.paid_used}</span>
+            <span className="text-slate-500 text-sm mb-1 font-medium">/ {balance.paid_total} remaining</span>
           </div>
         </div>
-      )}
+        <div className="glass-card p-6 rounded-2xl flex flex-col gap-1">
+          <div className="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center mb-2">
+            <span className="material-symbols-outlined">local_hospital</span>
+          </div>
+          <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Sick Leave</span>
+          <div className="flex items-end gap-2 mt-1">
+            <span className="text-3xl font-h1 text-white">{balance.sick_total - balance.sick_used}</span>
+            <span className="text-slate-500 text-sm mb-1 font-medium">/ {balance.sick_total} remaining</span>
+          </div>
+        </div>
+        <div className="glass-card p-6 rounded-2xl flex flex-col gap-1">
+          <div className="w-10 h-10 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center mb-2">
+            <span className="material-symbols-outlined">event_note</span>
+          </div>
+          <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Casual Leave</span>
+          <div className="flex items-end gap-2 mt-1">
+            <span className="text-3xl font-h1 text-white">{balance.casual_total - balance.casual_used}</span>
+            <span className="text-slate-500 text-sm mb-1 font-medium">/ {balance.casual_total} remaining</span>
+          </div>
+        </div>
+      </div>
 
       <LeaveApplyClient />
 
       {/* Leave History */}
       <div className="mt-8 glass-card p-6 rounded-2xl overflow-hidden">
         <h2 className="text-xl font-h3 text-white mb-6">Leave History</h2>
-        {leaveHistory && leaveHistory.length > 0 ? (
+        {leaveHistory.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -107,8 +98,8 @@ export default async function LeaveApplyPage() {
                       <td className="p-4 text-slate-400 text-sm max-w-xs truncate">{leave.reason || '—'}</td>
                       <td className="p-4">
                         <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-                          leave.status.toLowerCase() === 'approved' ? 'bg-emerald-500/10 text-emerald-400' :
-                          leave.status.toLowerCase() === 'rejected' ? 'bg-red-500/10 text-red-400' :
+                          leave.status === 'Approved' ? 'bg-emerald-500/10 text-emerald-400' :
+                          leave.status === 'Rejected' ? 'bg-red-500/10 text-red-400' :
                           'bg-amber-500/10 text-amber-400'
                         }`}>
                           {leave.status}

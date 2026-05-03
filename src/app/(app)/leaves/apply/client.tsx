@@ -1,14 +1,15 @@
 'use client'
 
 import React, { useState } from 'react'
-import { applyLeave } from './actions'
+import { useHRMS } from '@/context/HRMSContext'
 
 export function LeaveApplyClient() {
+  const { applyLeave, currentUser } = useHRMS()
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const [loading, setLoading] = useState(false)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [leaveType, setLeaveType] = useState('paid')
+  const [reason, setReason] = useState('')
 
   // Calculate days difference
   const daysDiff = React.useMemo(() => {
@@ -19,21 +20,37 @@ export function LeaveApplyClient() {
     return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
   }, [startDate, endDate])
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setLoading(true)
     setMessage(null)
 
-    const formData = new FormData(e.currentTarget)
-    const result = await applyLeave(formData)
-
-    if (result.error) {
-      setMessage({ type: 'error', text: result.error })
-    } else {
-      setMessage({ type: 'success', text: result.message! })
-      e.currentTarget.reset()
+    if (!currentUser) {
+      setMessage({ type: 'error', text: 'You must be logged in to apply for leave' })
+      return
     }
-    setLoading(false)
+
+    if (daysDiff <= 0) {
+      setMessage({ type: 'error', text: 'End date must be on or after start date' })
+      return
+    }
+
+    if (leaveType === 'sick' && daysDiff > 3 && reason.trim().length < 5) {
+      setMessage({ type: 'error', text: 'Please provide a valid reason or note for sick leaves > 3 days' })
+      return
+    }
+
+    applyLeave({
+      employee_id: currentUser.id,
+      type: leaveType,
+      start_date: startDate,
+      end_date: endDate,
+      reason
+    })
+
+    setMessage({ type: 'success', text: `Leave applied successfully for ${daysDiff} days` })
+    setStartDate('')
+    setEndDate('')
+    setReason('')
   }
 
   return (
@@ -50,11 +67,11 @@ export function LeaveApplyClient() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6" encType="multipart/form-data">
+      <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
             <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Leave Type</label>
-            <select required name="type" value={leaveType} onChange={e => setLeaveType(e.target.value)} className="w-full bg-surface-container-highest border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all outline-none appearance-none cursor-pointer">
+            <select required value={leaveType} onChange={e => setLeaveType(e.target.value)} className="w-full bg-surface-container-highest border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all outline-none appearance-none cursor-pointer">
               <option value="paid">Paid Leave</option>
               <option value="sick">Sick Leave</option>
               <option value="casual">Casual Leave</option>
@@ -63,16 +80,16 @@ export function LeaveApplyClient() {
           </div>
           <div>
             <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Start Date</label>
-            <input required type="date" name="start_date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full bg-surface-container-highest border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all outline-none [color-scheme:dark]" />
+            <input required type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full bg-surface-container-highest border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all outline-none [color-scheme:dark]" />
           </div>
           <div>
             <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">End Date</label>
-            <input required type="date" name="end_date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full bg-surface-container-highest border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all outline-none [color-scheme:dark]" />
+            <input required type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full bg-surface-container-highest border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all outline-none [color-scheme:dark]" />
           </div>
         </div>
         <div>
           <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Reason (Optional)</label>
-          <textarea name="reason" rows={3} className="w-full bg-surface-container-highest border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all outline-none placeholder:text-slate-600" placeholder="Describe the reason for your leave..." />
+          <textarea rows={3} value={reason} onChange={e => setReason(e.target.value)} className="w-full bg-surface-container-highest border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all outline-none placeholder:text-slate-600" placeholder="Describe the reason for your leave..." />
         </div>
         
         {leaveType === 'sick' && (
@@ -88,8 +105,6 @@ export function LeaveApplyClient() {
             <div className="relative group">
               <input 
                 type="file" 
-                name="document" 
-                required={daysDiff > 3}
                 className="w-full bg-surface-container-highest border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-violet-500/20 file:text-violet-400 hover:file:bg-violet-500/30 file:cursor-pointer cursor-pointer" 
               />
             </div>
@@ -104,15 +119,10 @@ export function LeaveApplyClient() {
         <div className="flex justify-end pt-2">
           <button
             type="submit"
-            disabled={loading}
-            className="bg-primary-container hover:bg-violet-600 text-white px-8 py-3 rounded-xl transition-all shadow-[0_0_20px_rgba(124,58,237,0.3)] hover:shadow-[0_0_30px_rgba(124,58,237,0.5)] disabled:opacity-50 disabled:pointer-events-none font-button text-button flex items-center justify-center gap-2 active:scale-95"
+            className="bg-primary-container hover:bg-violet-600 text-white px-8 py-3 rounded-xl transition-all shadow-[0_0_20px_rgba(124,58,237,0.3)] hover:shadow-[0_0_30px_rgba(124,58,237,0.5)] font-button text-button flex items-center justify-center gap-2 active:scale-95"
           >
-            {loading ? (
-              <span className="material-symbols-outlined animate-spin">refresh</span>
-            ) : (
-              <span className="material-symbols-outlined text-sm">send</span>
-            )}
-            {loading ? 'Submitting...' : 'Submit Leave Request'}
+            <span className="material-symbols-outlined text-sm">send</span>
+            Submit Leave Request
           </button>
         </div>
       </form>

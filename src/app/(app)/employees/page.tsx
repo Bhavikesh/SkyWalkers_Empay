@@ -1,67 +1,62 @@
-import { createClient } from '@/utils/supabase/server'
-import { redirect } from 'next/navigation'
+'use client'
+
+import { useHRMS } from '@/context/HRMSContext'
 import EmployeeListClient from './EmployeeListClient'
-import { type Metadata } from 'next'
 
-export const metadata: Metadata = {
-  title: 'Nexus HR — Employees',
-  description: 'Manage your team members',
-}
+export default function EmployeesPage() {
+  const { employees, attendance, leaves, currentUser } = useHRMS()
 
-export default async function EmployeesPage() {
-  const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
-  if (error || !user) redirect('/login')
-
-  const { data: currentProfile } = await supabase
-    .from('profiles')
-    .select('*, roles(*)')
-    .eq('id', user.id)
-    .single()
-
-  const rawRoles = currentProfile?.roles
-  const perms = (Array.isArray(rawRoles) ? rawRoles[0] : rawRoles) as Record<string, boolean> || {}
-
-  const { data: employees } = await supabase
-    .from('profiles')
-    .select('*, roles(name)')
-    .order('first_name', { ascending: true })
+  if (!currentUser) return null
 
   const today = new Date().toISOString().split('T')[0]
-  const isHrOrAdmin = !!(perms.can_manage_users || perms.can_manage_leaves)
+  
+  const todayAttendance = attendance.filter(a => a.date === today)
+  const presentNames = new Set(
+    todayAttendance.map(a => {
+      const emp = employees.find(e => e.id === a.employee_id)
+      return emp ? emp.name : ''
+    }).filter(Boolean)
+  )
 
-  const { data: todayAttendance } = await supabase
-    .from('attendance')
-    .select('employee_name, check_in, check_out, status')
-    .eq('date', today)
+  const onLeaveNames = new Set(
+    leaves.filter(l => l.start_date <= today && l.end_date >= today && l.status === 'Approved')
+      .map(l => {
+        const emp = employees.find(e => e.id === l.employee_id)
+        return emp ? emp.name : ''
+      }).filter(Boolean)
+  )
 
-  const { data: activeLeaves } = await supabase
-    .from('leave_requests')
-    .select('employee_name')
-    .lte('start_date', today)
-    .gte('end_date', today)
-    .eq('status', 'approved')
+  const myAttendance = todayAttendance.find(a => a.employee_id === currentUser.id) || null
 
-  // For myAttendance, we match by name since we are logged in user
-  const fullName = `${currentProfile?.first_name} ${currentProfile?.last_name}`
-  const myAttendance = todayAttendance?.find(a => a.employee_name === fullName) || null
-
-  const presentNames = new Set((todayAttendance || []).map(a => a.employee_name))
-  const onLeaveNames = new Set((activeLeaves || []).map(l => l.employee_name))
+  const isHrOrAdmin = currentUser.role === 'Admin' || currentUser.role === 'HR'
 
   const stats = {
-    total: employees?.length || 0,
+    total: employees.length,
     present: presentNames.size,
     onLeave: onLeaveNames.size,
     highRisk: 0,
   }
 
+  // Map local Employee type to what EmployeeListClient expects
+  const mappedEmployees = employees.map(emp => ({
+    id: emp.id,
+    first_name: emp.name.split(' ')[0],
+    last_name: emp.name.split(' ').slice(1).join(' '),
+    email: emp.email,
+    phone: emp.phone,
+    department: emp.department,
+    login_id: `EMP-${emp.id}`,
+    is_active: true,
+    created_at: new Date().toISOString(),
+    roles: { name: emp.role }
+  }))
+
   return (
     <EmployeeListClient
-      employees={employees || []}
+      employees={mappedEmployees}
       stats={stats}
-      currentUserId={user.id}
-      canManageUsers={!!perms.can_manage_users}
+      currentUserId={currentUser.id}
+      canManageUsers={isHrOrAdmin}
       isHrOrAdmin={isHrOrAdmin}
       presentNames={Array.from(presentNames)}
       onLeaveNames={Array.from(onLeaveNames)}

@@ -1,13 +1,8 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { BarChart2, TrendingUp, Users, DollarSign, Download, Clock, Printer } from 'lucide-react'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { useHRMS } from '@/context/HRMSContext'
 
 interface Department {
   id: string
@@ -26,80 +21,55 @@ interface MonthlyHire {
 const fmt = (n: number) => `₹${Number(n).toLocaleString('en-IN')}`
 
 export default function ReportsPage() {
+  const { employees, payroll, attendance, currentUser } = useHRMS()
+
   const [activeTab, setActiveTab] = useState('Overview')
   
-  // Overview States
-  const [deptData, setDeptData] = useState<Department[]>([])
-  const [monthlyHires, setMonthlyHires] = useState<MonthlyHire[]>([])
-  const [loading, setLoading] = useState(true)
-
   // Salary Statement States
-  const [employees, setEmployees] = useState<any[]>([])
   const [selectedEmpId, setSelectedEmpId] = useState('')
   const [selectedYear, setSelectedYear] = useState('2026')
   const [reportData, setReportData] = useState<any[]>([])
   const [reportGenerated, setReportGenerated] = useState(false)
 
-  // Roles/Perms (Mock simple check or rely on server layout perms)
-  const [canPrint, setCanPrint] = useState(false)
+  // Roles/Perms
+  const canPrint = currentUser?.role === 'Admin' || currentUser?.role === 'HR' || currentUser?.role === 'Payroll'
 
-  useEffect(() => {
-    async function fetchData() {
-      setLoading(true)
-
-      const [deptRes, hiresRes, empRes, userRes, payrollRes] = await Promise.all([
-        supabase.from('departments').select('*').order('name'),
-        supabase.from('monthly_hires').select('*').order('id'),
-        supabase.from('employees').select('id, name, code').eq('status', 'active'),
-        supabase.auth.getUser(),
-        supabase.from('payroll').select('*')
-      ])
-
-      if (!deptRes.error) setDeptData((deptRes.data as Department[]) || [])
-      if (!hiresRes.error) setMonthlyHires((hiresRes.data as MonthlyHire[]) || [])
-      
-      let emps = empRes.data || []
-      // Fallback: If no active employees exist, populate dropdown using historical payroll records
-      if (emps.length === 0 && payrollRes.data && payrollRes.data.length > 0) {
-        const uniqueMap = new Map()
-        payrollRes.data.forEach((p: any) => {
-          if (p.employee_name && !uniqueMap.has(p.employee_name)) {
-            uniqueMap.set(p.employee_name, { 
-              id: p.employee_id || p.id || Math.random().toString(), 
-              name: p.employee_name, 
-              code: 'EMP-XX' 
-            })
-          }
-        })
-        emps = Array.from(uniqueMap.values())
-      }
-      setEmployees(emps)
-
-      // Role Check (If we can fetch profile roles, otherwise default to true for the demonstration)
-      if (userRes.data.user) {
-        const { data: profile } = await supabase.from('profiles').select('*, roles(*)').eq('id', userRes.data.user.id).single()
-        const perms = (Array.isArray(profile?.roles) ? profile?.roles[0] : profile?.roles) as any
-        setCanPrint(perms?.can_manage_users || perms?.can_process_payroll || true) // Default true for demo
-      }
-
-      setLoading(false)
+  // Calculate stats from local context
+  const deptMap = employees.reduce((acc, emp) => {
+    if (!acc[emp.department]) {
+      acc[emp.department] = { id: emp.department, name: emp.department, headcount: 0, monthly_payroll: 0, avg_attendance: Math.floor(Math.random() * 10) + 85 } // mock attendance for demo
     }
-    fetchData()
-  }, [])
+    acc[emp.department].headcount += 1
+    acc[emp.department].monthly_payroll += emp.salary / 12
+    return acc
+  }, {} as Record<string, Department>)
+
+  const deptData = Object.values(deptMap)
+
+  // Mock monthly hires for demo
+  const monthlyHires: MonthlyHire[] = [
+    { id: '1', month: 'Nov', count: 2 },
+    { id: '2', month: 'Dec', count: 4 },
+    { id: '3', month: 'Jan', count: 3 },
+    { id: '4', month: 'Feb', count: 6 },
+    { id: '5', month: 'Mar', count: 5 },
+    { id: '6', month: 'Apr', count: 8 },
+    { id: '7', month: 'May', count: 12 },
+  ]
 
   const maxHires = Math.max(...monthlyHires.map(m => m.count), 1)
 
-  const totalHeadcount = deptData.reduce((sum, d) => sum + (d.headcount || 0), 0)
-  const totalPayroll = deptData.reduce((sum, d) => sum + Number(d.monthly_payroll || 0), 0)
+  const totalHeadcount = employees.length
+  const totalPayroll = payroll.length > 0 ? payroll.reduce((sum, p) => sum + p.net, 0) : deptData.reduce((sum, d) => sum + d.monthly_payroll, 0)
   const avgAttendance = deptData.length > 0
     ? (deptData.reduce((sum, d) => sum + Number(d.avg_attendance || 0), 0) / deptData.length).toFixed(1)
     : '0'
 
   const stats = [
-    { icon: Users, label: 'Headcount', value: loading ? '-' : String(totalHeadcount), trend: '+12 this month', color: 'indigo' },
+    { icon: Users, label: 'Headcount', value: String(totalHeadcount), trend: '+12 this month', color: 'indigo' },
     { icon: TrendingUp, label: 'Turnover Rate', value: '4.8%', trend: '-0.5% vs Q1', color: 'emerald' },
-    { icon: DollarSign, label: 'Total Payroll', value: loading ? '-' : `₹${(totalPayroll / 1000).toFixed(0)}K`, trend: '+4.2% vs Apr', color: 'violet' },
-    { icon: BarChart2, label: 'Avg Attendance', value: loading ? '-' : `${avgAttendance}%`, trend: '+1.1% this week', color: 'sky' },
+    { icon: DollarSign, label: 'Total Payroll', value: `₹${(totalPayroll / 1000).toFixed(0)}K`, trend: '+4.2% vs Apr', color: 'violet' },
+    { icon: BarChart2, label: 'Avg Attendance', value: `${avgAttendance}%`, trend: '+1.1% this week', color: 'sky' },
   ]
 
   const colorMap: Record<string, string> = {
@@ -121,8 +91,7 @@ export default function ReportsPage() {
     const pf = basic * 0.12
     const net = (basic + hra) - pf
     
-    // Determine if present based on mock logic (name length % 2 === 0 means present)
-    const isPresent = nameLength % 2 !== 0 || true; // Mocking true so it shows green mostly
+    const isPresent = true; // Mock
     
     setReportData([{
       basic,
@@ -188,12 +157,7 @@ export default function ReportsPage() {
         ))}
       </div>
 
-      {loading ? (
-        <div className="glass-card p-16 flex flex-col items-center justify-center rounded-2xl">
-          <Clock className="animate-spin text-violet-500 mb-4" size={32} />
-          <p className="text-slate-400">Loading reports data...</p>
-        </div>
-      ) : activeTab === 'Overview' ? (
+      {activeTab === 'Overview' ? (
         <div className="animate-in fade-in">
           {/* Stat Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -274,7 +238,7 @@ export default function ReportsPage() {
                     <tr key={d.id || i} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                       <td className="px-6 py-4 font-medium text-white">{d.name}</td>
                       <td className="px-6 py-4 text-slate-400">{d.headcount}</td>
-                      <td className="px-6 py-4 text-slate-300">₹{Number(d.monthly_payroll).toLocaleString('en-IN')}</td>
+                      <td className="px-6 py-4 text-slate-300">₹{Number(d.monthly_payroll).toLocaleString('en-IN', {maximumFractionDigits: 0})}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="flex-1 h-1.5 bg-surface-container-highest rounded-full overflow-hidden max-w-[80px]">
@@ -388,7 +352,7 @@ export default function ReportsPage() {
                   <div className="flex justify-between mb-8 text-[#ff8a65] text-sm">
                     <div className="space-y-1.5">
                       <p>Employee Name <span className="ml-8 text-[#e0e0e0]">{employees.find(e => e.id === selectedEmpId)?.name}</span></p>
-                      <p>Designation <span className="ml-12 text-[#e0e0e0]">Software Engineer</span></p>
+                      <p>Designation <span className="ml-12 text-[#e0e0e0]">{employees.find(e => e.id === selectedEmpId)?.role || 'Software Engineer'}</span></p>
                     </div>
                     <div className="space-y-1.5 pr-12">
                       <p>Date Of Joining <span className="ml-6 text-[#e0e0e0]">01-Jan-2023</span></p>
@@ -432,7 +396,7 @@ export default function ReportsPage() {
                   <div className="text-[#ff8a65] text-lg mb-6">Deduction</div>
                   
                   <div className="grid grid-cols-3 text-sm mb-8 text-[#e0e0e0]">
-                    <div className="pl-4">PF--</div>
+                    <div className="pl-4">PF</div>
                     <div className="text-center">[₹ {reportData[0]?.pf || 12233}]</div>
                     <div className="text-right">[₹ {(reportData[0]?.pf || 12233) * 12}]</div>
                   </div>
