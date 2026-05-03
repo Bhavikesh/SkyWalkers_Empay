@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import CheckInOutButton from '@/components/CheckInOutButton';
 
 export default async function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
@@ -115,10 +116,8 @@ export default async function LayoutWrapper({ children }: { children: React.Reac
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <button className="p-2 text-slate-400 hover:bg-white/5 rounded-full transition-colors relative">
-              <span className="material-symbols-outlined">notifications</span>
-              <span className="absolute top-2 right-2 w-2 h-2 bg-violet-500 rounded-full border-2 border-slate-950"></span>
-            </button>
+            <CheckInOutButton />
+
             <div className="h-8 w-[1px] bg-white/10 mx-2"></div>
             <div className="relative group cursor-pointer">
               <div className="flex items-center gap-3">

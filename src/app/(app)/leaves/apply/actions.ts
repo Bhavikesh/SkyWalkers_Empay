@@ -38,17 +38,43 @@ export async function applyLeave(formData: FormData) {
 
   if (!profile) return { error: 'Profile not found' }
 
+  // 1.5 Get Employee record
+  let { data: employee } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('profile_id', user.id)
+    .maybeSingle()
+
+  if (!employee) {
+    // Auto-create missing employee record for stability in demo/new environments
+    const adminClient = createAdminClient()
+    const { data: newEmp, error: empErr } = await adminClient
+      .from('employees')
+      .insert({
+        profile_id: user.id,
+        company_id: profile.company_id,
+        name: `${profile.first_name} ${profile.last_name}`,
+        code: 'EMP-' + Math.random().toString(36).substring(2, 7).toUpperCase(),
+        status: 'active',
+        basic_salary: 50000, // Default for new records
+        department: 'General'
+      })
+      .select('id')
+      .single()
+
+    if (empErr) return { error: 'Failed to auto-generate employee record: ' + empErr.message }
+    employee = newEmp
+  }
+
   // 2. Check/Init Leave Balance
   if (type !== 'unpaid') {
-    // Map internal type names to display names if necessary, 
-    // or just use the type string directly as stored in DB.
-    // In the UI it says 'Sick Leave', 'Casual Leave', etc.
+    // Map internal type names to display names if necessary
     const dbType = type.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
     
     let { data: balance } = await supabase
       .from('leave_balances')
       .select('*')
-      .eq('employee_id', user.id)
+      .eq('employee_id', employee.id)
       .eq('leave_type', dbType)
       .maybeSingle()
 
@@ -57,7 +83,7 @@ export async function applyLeave(formData: FormData) {
       const { data: newBalance, error: initError } = await adminClient
         .from('leave_balances')
         .insert({
-          employee_id: user.id,
+          employee_id: employee.id,
           company_id: profile.company_id,
           leave_type: dbType,
           total_days: type.toLowerCase().includes('paid') ? 12 : 6,

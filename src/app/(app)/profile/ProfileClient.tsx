@@ -126,11 +126,11 @@ export function ProfileClient({ profile, employee, bankDetails, balance, payslip
               <div className="flex flex-wrap justify-center lg:justify-start gap-x-8 gap-y-3 mt-6">
                 <div className="flex items-center gap-3 text-slate-300/80 bg-white/5 px-4 py-2 rounded-xl border border-white/5">
                   <span className="material-symbols-outlined text-violet-400 text-lg">mail</span>
-                  <span className="text-sm font-medium">{profile?.email}</span>
+                  <span className="text-sm font-medium">{formData.personal_email || profile?.email || '—'}</span>
                 </div>
                 <div className="flex items-center gap-3 text-slate-300/80 bg-white/5 px-4 py-2 rounded-xl border border-white/5">
                   <span className="material-symbols-outlined text-emerald-400 text-lg">phone</span>
-                  <span className="text-sm font-medium">{profile?.phone || '+91 —'}</span>
+                  <span className="text-sm font-medium">{formData.phone ? `+91 ${formData.phone}` : '+91 —'}</span>
                 </div>
               </div>
             </div>

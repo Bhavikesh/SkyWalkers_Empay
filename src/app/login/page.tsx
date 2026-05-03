@@ -2,6 +2,7 @@ import { login } from './actions'
 import Link from 'next/link'
 import Image from 'next/image'
 import { AtSign, Lock, Eye } from 'lucide-react'
+import PasswordInput from './PasswordInput'
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ message?: string }> }) {
   const params = await searchParams
@@ -67,21 +68,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             {/* Password */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-gray-400" htmlFor="password">Password</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock size={16} className="text-gray-500" />
-                </div>
-                <input
-                  className="w-full rounded-lg pl-10 pr-10 py-3 bg-[#141414] border border-[#222] focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder:text-gray-600 text-sm"
-                  type="password"
-                  name="password"
-                  placeholder="••••••••"
-                  required
-                />
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer text-gray-500 hover:text-gray-300">
-                  <Eye size={16} />
-                </div>
-              </div>
+              <PasswordInput />
             </div>
 
             {/* Remember Me & Forgot Password */}

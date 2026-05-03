@@ -15,9 +15,8 @@ export default async function AdminAttendancePage() {
 
   const perms = Array.isArray(profile?.roles) ? profile?.roles[0] : profile?.roles
   
-  if (!perms?.can_view_all_attendance && !perms?.can_manage_users) {
-    redirect('/unauthorized')
-  }
+  // Allow all employees to access the attendance page.
+  // We will let the `canManage` boolean restrict editing capabilities instead of completely blocking the page.
 
   // Admin and HR can manage. Payroll can only read.
   const roleName = perms?.name || ''

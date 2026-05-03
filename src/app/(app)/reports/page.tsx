@@ -47,16 +47,33 @@ export default function ReportsPage() {
     async function fetchData() {
       setLoading(true)
 
-      const [deptRes, hiresRes, empRes, userRes] = await Promise.all([
+      const [deptRes, hiresRes, empRes, userRes, payrollRes] = await Promise.all([
         supabase.from('departments').select('*').order('name'),
         supabase.from('monthly_hires').select('*').order('id'),
         supabase.from('employees').select('id, name, code').eq('status', 'active'),
-        supabase.auth.getUser()
+        supabase.auth.getUser(),
+        supabase.from('payroll').select('*')
       ])
 
       if (!deptRes.error) setDeptData((deptRes.data as Department[]) || [])
       if (!hiresRes.error) setMonthlyHires((hiresRes.data as MonthlyHire[]) || [])
-      if (!empRes.error && empRes.data) setEmployees(empRes.data)
+      
+      let emps = empRes.data || []
+      // Fallback: If no active employees exist, populate dropdown using historical payroll records
+      if (emps.length === 0 && payrollRes.data && payrollRes.data.length > 0) {
+        const uniqueMap = new Map()
+        payrollRes.data.forEach((p: any) => {
+          if (p.employee_name && !uniqueMap.has(p.employee_name)) {
+            uniqueMap.set(p.employee_name, { 
+              id: p.employee_id || p.id || Math.random().toString(), 
+              name: p.employee_name, 
+              code: 'EMP-XX' 
+            })
+          }
+        })
+        emps = Array.from(uniqueMap.values())
+      }
+      setEmployees(emps)
 
       // Role Check (If we can fetch profile roles, otherwise default to true for the demonstration)
       if (userRes.data.user) {
